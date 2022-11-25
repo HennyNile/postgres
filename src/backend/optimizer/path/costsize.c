@@ -93,6 +93,7 @@
 #include "optimizer/plancat.h"
 #include "optimizer/planmain.h"
 #include "optimizer/restrictinfo.h"
+#include "optimizer/cardprovider.h"
 #include "parser/parsetree.h"
 #include "utils/lsyscache.h"
 #include "utils/selfuncs.h"
@@ -4975,14 +4976,64 @@ set_baserel_size_estimates(PlannerInfo *root, RelOptInfo *rel)
 	/* Should only be applied to base relations */
 	Assert(rel->relid > 0);
 
-	nrows = rel->tuples *
-		clauselist_selectivity(root,
-							   rel->baserestrictinfo,
-							   0,
-							   JOIN_INNER,
-							   NULL);
+    FILE * fp;
+    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fprintf(fp, "\nLiqilong: Cardinality Estimation in Scan Operator\nLocation: set_baserel_size_estimates\n");
+    fprintf(fp, "This relation has %d clauses.\n", list_length(rel->baserestrictinfo));
+    fprintf(fp, "Initial row number is %f.\n", rel->tuples);
+//
+//    Relids relids = rel->relids;
+//    int nwords = relids->nwords;
+//    int wordnum;
+//    for(wordnum = 0; wordnum < nwords; wordnum++)
+//    {
+//        bitmapword w = relids->words[wordnum];
+//        fprintf(fp, "relid %d = %ld\n", wordnum, w);
+//    }
 
-	rel->rows = clamp_row_est(nrows);
+    if((int)list_length(rel->baserestrictinfo) == 1) {
+        fprintf(fp, "start print clause\n");
+        ListCell *arg;
+        Node * clause = (Node *) linitial(rel->baserestrictinfo);
+        RestrictInfo *rinfo = (RestrictInfo *) clause;
+        if (rinfo->orclause)
+            clause = (Node *) rinfo->orclause;
+        else
+            clause = (Node *) rinfo->clause;
+
+        OpExpr * opclause = (OpExpr *) clause;
+        foreach(arg, opclause->args) {
+            if (IsA(lfirst(arg), Const)) {
+                fprintf(fp, "This arg is a Const. The value of arg is %ld.\n", ((Const *) lfirst(arg))->constvalue);
+            } else if (IsA(lfirst(arg), Var)) {
+                Var* var = (Var *)lfirst(arg);
+                fprintf(fp, "This arg is a Var. ");
+                fprintf(fp, "varno = %d, varattno = %d, vartype = %d, location = %d.\n", var->varno, var->varattno, var->vartype, var->location);
+            }
+            else
+                fprintf(fp, "This arg is not a const or var.\n");
+        }
+    }
+
+    fprintf(fp, "enabld_truth_card: %d\n", enable_truth_card);
+    if(enable_truth_card) {
+        int total_relids = (int)rel->relids->words[0];
+        fprintf(fp, "benchmark=%d, query_order=%d, relids=%d\n", benchmark, query_order, total_relids);
+        nrows = get_truth_cardinality(total_relids);
+    } else {
+        nrows = rel->tuples *
+                clauselist_selectivity(root,
+                                       rel->baserestrictinfo,
+                                       0,
+                                       JOIN_INNER,
+                                       NULL);
+    }
+
+    fprintf(fp, "Relation %d's cardinality is %f.\n", (int)rel->relid, nrows);
+    fclose(fp);
+
+    rel->rows = nrows;
+//	rel->rows = clamp_row_est(nrows);
 
 	cost_qual_eval(&rel->baserestrictcost, rel->baserestrictinfo, root);
 
@@ -5053,14 +5104,49 @@ set_joinrel_size_estimates(PlannerInfo *root, RelOptInfo *rel,
 						   SpecialJoinInfo *sjinfo,
 						   List *restrictlist)
 {
-	rel->rows = calc_joinrel_size_estimate(root,
-										   rel,
-										   outer_rel,
-										   inner_rel,
-										   outer_rel->rows,
-										   inner_rel->rows,
-										   sjinfo,
-										   restrictlist);
+    FILE* fp;
+    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fprintf(fp, "\nLiqilong: Cardinality Estimation in Join Operator\nLocation: set_joinrel_size_estimates\n");
+    fprintf(fp, "Outer_rel's cardinality is %f.\n", outer_rel->rows);
+    fprintf(fp, "Inner_rel's cardinality is %f.\n", inner_rel->rows);
+
+    Relids outer_relids = outer_rel->relids;
+    int outer_relids_nwords = outer_relids->nwords;
+    int wordnum;
+    for(wordnum = 0; wordnum < outer_relids_nwords; wordnum++)
+    {
+        bitmapword w = outer_relids->words[wordnum];
+        fprintf(fp, "relid %d = %ld\n", wordnum, w);
+    }
+
+
+    double nrows;
+
+    if(enable_truth_card)
+    {
+        int outer_total_relids = outer_rel->relids->words[0];
+        int inner_total_relids = inner_rel->relids->words[0];
+        int total_relids = outer_total_relids + inner_total_relids;
+        fprintf(fp, "benchmark=%d, query_order=%d, relids=%d\n", benchmark, query_order, total_relids);
+        nrows = get_truth_cardinality(total_relids);
+        // avoid all cartesian product joins
+        if(nrows==-1)
+            nrows = MAXIMUM_ROWCOUNT;
+    } else
+        nrows = calc_joinrel_size_estimate(root,
+                                           rel,
+                                           outer_rel,
+                                           inner_rel,
+                                           outer_rel->rows,
+                                           inner_rel->rows,
+                                           sjinfo,
+                                           restrictlist);
+
+    rel->rows = nrows;
+//    rel->rows = clamp_row_est(nrows);
+
+    fprintf(fp, "Result cardinality is %f.\n", rel->rows);
+    fclose(fp);
 }
 
 /*

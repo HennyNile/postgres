@@ -58,6 +58,17 @@ int			MyPMChildSlot;
 struct Latch *MyLatch;
 
 /*
+ * These three variables are added to map newly added config variables.
+ * enable_truth_card enables feeding truth cardinality for scan and join
+ * operator, benchmark represents the running benchmark, 1 means 6 join in IMDB,
+ * query_order is the order of query in the benchmark.
+ *
+ * */
+bool        enable_truth_card = false;
+int         benchmark = 0;
+int         query_order = 0;
+
+/*
  * DataDir is the absolute path to the top level of the PGDATA directory tree.
  * Except during early startup, this is also the server's working directory;
  * most code therefore can simply use relative paths and not reference DataDir

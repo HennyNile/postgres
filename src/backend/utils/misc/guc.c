@@ -1012,6 +1012,16 @@ static const unit_conversion time_unit_conversion_table[] =
 
 static struct config_bool ConfigureNamesBool[] =
 {
+    {
+        {"enable_truth_card", PGC_POSTMASTER, FILE_LOCATIONS,
+         gettext_noop("Enable feeding truth."),
+         NULL,
+         1
+        },
+        &enable_truth_card,
+        false,
+        NULL, NULL, NULL
+    },
 	{
 		{"enable_seqscan", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("Enables the planner's use of sequential-scan plans."),
@@ -2181,6 +2191,26 @@ static struct config_bool ConfigureNamesBool[] =
 
 static struct config_int ConfigureNamesInt[] =
 {
+    {
+        {"benchmark", PGC_POSTMASTER, FILE_LOCATIONS,
+         gettext_noop("The benchmark of query."),
+         NULL,
+         1
+        },
+        &benchmark,
+        0, 0, 10000,
+        NULL, NULL, NULL
+    },
+    {
+        {"query_order", PGC_POSTMASTER, FILE_LOCATIONS,
+            gettext_noop("The order of query to be run."),
+            NULL,
+            1
+        },
+        &query_order,
+        0, 0, 10000,
+        NULL, NULL, NULL
+    },
 	{
 		{"archive_timeout", PGC_SIGHUP, WAL_ARCHIVING,
 			gettext_noop("Sets the amount of time to wait before forcing a "
