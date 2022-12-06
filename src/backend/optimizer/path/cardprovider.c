@@ -12,45 +12,78 @@ double get_truth_cardinality_6joins_query_7(int total_relids);
 double get_truth_cardinality_6joins_query_8(int total_relids);
 double get_truth_cardinality_6joins_query_9(int total_relids);
 double get_truth_cardinality_6joins_query_10(int total_relids);
+double get_truth_cardinality_ssb_query_1_1(int total_relids);
+double get_truth_cardinality_ssb_query_1_2(int total_relids);
+double get_truth_cardinality_ssb_query_1_3(int total_relids);
+double get_truth_cardinality_ssb_query_1_4(int total_relids);
+double get_truth_cardinality_ssb_query_1_5(int total_relids);
+double get_truth_cardinality_ssb_query_1_6(int total_relids);
+double get_truth_cardinality_ssb_query_1_7(int total_relids);
+double get_truth_cardinality_ssb_query_1_8(int total_relids);
+double get_truth_cardinality_ssb_query_1_9(int total_relids);
+double get_truth_cardinality_ssb_query_1_10(int total_relids);
+double get_truth_cardinality_ssb_query_1_11(int total_relids);
+double get_truth_cardinality_ssb_query_1_12(int total_relids);
+double get_truth_cardinality_ssb_query_1_13(int total_relids);
 
 double
 get_truth_cardinality(int total_relids)
 {
     switch (benchmark) {
-        case 1:
+        case 1: // 6_join in IMDB
             switch (query_order) {
                 case 1:
                     return get_truth_cardinality_6joins_query_1(total_relids);
-                    break;
                 case 2:
                     return get_truth_cardinality_6joins_query_2(total_relids);
-                    break;
                 case 3:
                     return get_truth_cardinality_6joins_query_3(total_relids);
-                    break;
                 case 4:
                     return get_truth_cardinality_6joins_query_4(total_relids);
-                    break;
                 case 5:
                     return get_truth_cardinality_6joins_query_5(total_relids);
-                    break;
                 case 6:
                     return get_truth_cardinality_6joins_query_6(total_relids);
-                    break;
                 case 7:
                     return get_truth_cardinality_6joins_query_7(total_relids);
-                    break;
                 case 8:
                     return get_truth_cardinality_6joins_query_8(total_relids);
-                    break;
                 case 9:
                     return get_truth_cardinality_6joins_query_9(total_relids);
-                    break;
                 case 10:
                     return get_truth_cardinality_6joins_query_10(total_relids);
-                    break;
                 default:
                     return -1;
+            }
+            break;
+        case 2: // ssb_1
+            switch (query_order) {
+                case 1:
+                    return get_truth_cardinality_ssb_query_1_1(total_relids);
+                case 2:
+                    return get_truth_cardinality_ssb_query_1_2(total_relids);
+                case 3:
+                    return get_truth_cardinality_ssb_query_1_3(total_relids);
+                case 4:
+                    return get_truth_cardinality_ssb_query_1_4(total_relids);
+                case 5:
+                    return get_truth_cardinality_ssb_query_1_5(total_relids);
+                case 6:
+                    return get_truth_cardinality_ssb_query_1_6(total_relids);
+                case 7:
+                    return get_truth_cardinality_ssb_query_1_7(total_relids);
+                case 8:
+                    return get_truth_cardinality_ssb_query_1_8(total_relids);
+                case 9:
+                    return get_truth_cardinality_ssb_query_1_9(total_relids);
+                case 10:
+                    return get_truth_cardinality_ssb_query_1_10(total_relids);
+                case 11:
+                    return get_truth_cardinality_ssb_query_1_11(total_relids);
+                case 12:
+                    return get_truth_cardinality_ssb_query_1_12(total_relids);
+                case 13:
+                    return get_truth_cardinality_ssb_query_1_13(total_relids);
             }
             break;
         default:
@@ -1968,3 +2001,547 @@ get_truth_cardinality_6joins_query_10(int total_relids)
             return 3006;
     };
 }
+
+// [lineorder, dates, ]
+double
+get_truth_cardinality_ssb_query_1_1(int total_relids)
+{
+    switch (total_relids) {
+        // lineorder
+        case 2:
+            return 785941;
+            // dates
+        case 4:
+            return 365;
+            // lineorder, dates
+        case 6:
+            return 119142;
+    };
+}
+
+// [lineorder, dates, ]
+double
+get_truth_cardinality_ssb_query_1_2(int total_relids)
+{
+    switch (total_relids) {
+        // lineorder
+        case 2:
+            return 327924;
+            // dates
+        case 4:
+            return 31;
+            // lineorder, dates
+        case 6:
+            return 4287;
+    };
+}
+
+// [lineorder, dates, ]
+double
+get_truth_cardinality_ssb_query_1_3(int total_relids)
+{
+    switch (total_relids) {
+        // lineorder
+        case 2:
+            return 328056;
+            // dates
+        case 4:
+            return 7;
+            // lineorder, dates
+        case 6:
+            return 909;
+    };
+}
+
+// [lineorder, dates, part, supplier, ]
+double
+get_truth_cardinality_ssb_query_1_4(int total_relids)
+{
+    switch (total_relids) {
+        // lineorder
+        case 2:
+            return 6001171;
+            // dates
+        case 4:
+            return 2556;
+            // part
+        case 8:
+            return 7883;
+            // supplier
+        case 16:
+            return 378;
+            // lineorder, dates
+        case 6:
+            return 6001171;
+            // lineorder, part
+        case 10:
+            return 236816;
+            // lineorder, supplier
+        case 18:
+            return 1134371;
+            // lineorder, dates, part
+        case 14:
+            return 236816;
+            // lineorder, dates, supplier
+        case 22:
+            return 1134371;
+            // lineorder, part, supplier
+        case 26:
+            return 44575;
+            // lineorder, dates, part, supplier
+        case 30:
+            return 44575;
+    };
+}
+
+// [lineorder, dates, part, supplier, ]
+double
+get_truth_cardinality_ssb_query_1_5(int total_relids)
+{
+    switch (total_relids) {
+        // lineorder
+        case 2:
+            return 6001171;
+            // dates
+        case 4:
+            return 2556;
+            // part
+        case 8:
+            return 1584;
+            // supplier
+        case 16:
+            return 449;
+            // lineorder, dates
+        case 6:
+            return 6001171;
+            // lineorder, part
+        case 10:
+            return 47301;
+            // lineorder, supplier
+        case 18:
+            return 1347130;
+            // lineorder, dates, part
+        case 14:
+            return 47301;
+            // lineorder, dates, supplier
+        case 22:
+            return 1347130;
+            // lineorder, part, supplier
+        case 26:
+            return 10542;
+            // lineorder, dates, part, supplier
+        case 30:
+            return 10542;
+    };
+}
+
+// [lineorder, dates, part, supplier, ]
+double
+get_truth_cardinality_ssb_query_1_6(int total_relids)
+{
+    switch (total_relids) {
+        // lineorder
+        case 2:
+            return 6001171;
+            // dates
+        case 4:
+            return 2556;
+            // part
+        case 8:
+            return 216;
+            // supplier
+        case 16:
+            return 380;
+            // lineorder, dates
+        case 6:
+            return 6001171;
+            // lineorder, part
+        case 10:
+            return 6497;
+            // lineorder, supplier
+        case 18:
+            return 1140311;
+            // lineorder, dates, part
+        case 14:
+            return 6497;
+            // lineorder, dates, supplier
+        case 22:
+            return 1140311;
+            // lineorder, part, supplier
+        case 26:
+            return 1234;
+            // lineorder, dates, part, supplier
+        case 30:
+            return 1234;
+    };
+}
+
+// [customer, lineorder, supplier, dates, ]
+double
+get_truth_cardinality_ssb_query_1_7(int total_relids)
+{
+    switch (total_relids) {
+        // customer
+        case 2:
+            return 6051;
+            // lineorder
+        case 4:
+            return 6001171;
+            // supplier
+        case 8:
+            return 449;
+            // dates
+        case 16:
+            return 2192;
+            // customer, lineorder
+        case 6:
+            return 1207529;
+            // lineorder, supplier
+        case 12:
+            return 1347130;
+            // lineorder, dates
+        case 20:
+            return 5466178;
+            // customer, lineorder, supplier
+        case 14:
+            return 270707;
+            // customer, lineorder, dates
+        case 22:
+            return 1100441;
+            // lineorder, supplier, dates
+        case 28:
+            return 1226959;
+            // customer, lineorder, supplier, dates
+        case 30:
+            return 246764;
+    };
+}
+
+// [customer, lineorder, supplier, dates, ]
+double
+get_truth_cardinality_ssb_query_1_8(int total_relids)
+{
+    switch (total_relids) {
+        // customer
+        case 2:
+            return 1260;
+            // lineorder
+        case 4:
+            return 6001171;
+            // supplier
+        case 8:
+            return 76;
+            // dates
+        case 16:
+            return 2192;
+            // customer, lineorder
+        case 6:
+            return 246734;
+            // lineorder, supplier
+        case 12:
+            return 228595;
+            // lineorder, dates
+        case 20:
+            return 5466178;
+            // customer, lineorder, supplier
+        case 14:
+            return 9434;
+            // customer, lineorder, dates
+        case 22:
+            return 224157;
+            // lineorder, supplier, dates
+        case 28:
+            return 208374;
+            // customer, lineorder, supplier, dates
+        case 30:
+            return 8597;
+    };
+}
+
+// [customer, lineorder, supplier, dates, ]
+double
+get_truth_cardinality_ssb_query_1_9(int total_relids)
+{
+    switch (total_relids) {
+        // customer
+        case 2:
+            return 259;
+            // lineorder
+        case 4:
+            return 6001171;
+            // supplier
+        case 8:
+            return 19;
+            // dates
+        case 16:
+            return 2192;
+            // customer, lineorder
+        case 6:
+            return 50123;
+            // lineorder, supplier
+        case 12:
+            return 56901;
+            // lineorder, dates
+        case 20:
+            return 5466178;
+            // customer, lineorder, supplier
+        case 14:
+            return 481;
+            // customer, lineorder, dates
+        case 22:
+            return 45466;
+            // lineorder, supplier, dates
+        case 28:
+            return 51893;
+            // customer, lineorder, supplier, dates
+        case 30:
+            return 437;
+    };
+}
+
+// [customer, lineorder, supplier, dates, ]
+double
+get_truth_cardinality_ssb_query_1_10(int total_relids)
+{
+    switch (total_relids) {
+        // customer
+        case 2:
+            return 259;
+            // lineorder
+        case 4:
+            return 6001171;
+            // supplier
+        case 8:
+            return 19;
+            // dates
+        case 16:
+            return 31;
+            // customer, lineorder
+        case 6:
+            return 50123;
+            // lineorder, supplier
+        case 12:
+            return 56901;
+            // lineorder, dates
+        case 20:
+            return 77451;
+            // customer, lineorder, supplier
+        case 14:
+            return 481;
+            // customer, lineorder, dates
+        case 22:
+            return 639;
+            // lineorder, supplier, dates
+        case 28:
+            return 762;
+            // customer, lineorder, supplier, dates
+        case 30:
+            return 7;
+    };
+}
+
+// [dates, customer, supplier, part, lineorder, ]
+double
+get_truth_cardinality_ssb_query_1_11(int total_relids)
+{
+    switch (total_relids) {
+        // dates
+        case 2:
+            return 2556;
+            // customer
+        case 4:
+            return 5992;
+            // supplier
+        case 8:
+            return 378;
+            // part
+        case 16:
+            return 80045;
+            // lineorder
+        case 32:
+            return 6001171;
+            // dates, lineorder
+        case 34:
+            return 6001171;
+            // customer, lineorder
+        case 36:
+            return 1192672;
+            // supplier, lineorder
+        case 40:
+            return 1134371;
+            // part, lineorder
+        case 48:
+            return 2399737;
+            // dates, customer, lineorder
+        case 38:
+            return 1192672;
+            // dates, supplier, lineorder
+        case 42:
+            return 1134371;
+            // dates, part, lineorder
+        case 50:
+            return 2399737;
+            // customer, supplier, lineorder
+        case 44:
+            return 226191;
+            // customer, part, lineorder
+        case 52:
+            return 477315;
+            // supplier, part, lineorder
+        case 56:
+            return 452835;
+            // dates, customer, supplier, lineorder
+        case 46:
+            return 226191;
+            // dates, customer, part, lineorder
+        case 54:
+            return 477315;
+            // dates, supplier, part, lineorder
+        case 58:
+            return 452835;
+            // customer, supplier, part, lineorder
+        case 60:
+            return 90319;
+            // dates, customer, supplier, part, lineorder
+        case 62:
+            return 90319;
+    };
+}
+
+// [dates, customer, supplier, part, lineorder, ]
+double
+get_truth_cardinality_ssb_query_1_12(int total_relids)
+{
+    switch (total_relids) {
+        // dates
+        case 2:
+            return 729;
+            // customer
+        case 4:
+            return 5992;
+            // supplier
+        case 8:
+            return 378;
+            // part
+        case 16:
+            return 80045;
+            // lineorder
+        case 32:
+            return 6001171;
+            // dates, lineorder
+        case 34:
+            return 1444984;
+            // customer, lineorder
+        case 36:
+            return 1192672;
+            // supplier, lineorder
+        case 40:
+            return 1134371;
+            // part, lineorder
+        case 48:
+            return 2399737;
+            // dates, customer, lineorder
+        case 38:
+            return 289530;
+            // dates, supplier, lineorder
+        case 42:
+            return 272894;
+            // dates, part, lineorder
+        case 50:
+            return 576558;
+            // customer, supplier, lineorder
+        case 44:
+            return 226191;
+            // customer, part, lineorder
+        case 52:
+            return 477315;
+            // supplier, part, lineorder
+        case 56:
+            return 452835;
+            // dates, customer, supplier, lineorder
+        case 46:
+            return 54796;
+            // dates, customer, part, lineorder
+        case 54:
+            return 115496;
+            // dates, supplier, part, lineorder
+        case 58:
+            return 108814;
+            // customer, supplier, part, lineorder
+        case 60:
+            return 90319;
+            // dates, customer, supplier, part, lineorder
+        case 62:
+            return 21872;
+    };
+}
+
+// [dates, customer, supplier, part, lineorder, ]
+double
+get_truth_cardinality_ssb_query_1_13(int total_relids)
+{
+    switch (total_relids) {
+        // dates
+        case 2:
+            return 729;
+            // customer
+        case 4:
+            return 5992;
+            // supplier
+        case 8:
+            return 76;
+            // part
+        case 16:
+            return 8029;
+            // lineorder
+        case 32:
+            return 6001171;
+            // dates, lineorder
+        case 34:
+            return 1444984;
+            // customer, lineorder
+        case 36:
+            return 1192672;
+            // supplier, lineorder
+        case 40:
+            return 228595;
+            // part, lineorder
+        case 48:
+            return 240759;
+            // dates, customer, lineorder
+        case 38:
+            return 289530;
+            // dates, supplier, lineorder
+        case 42:
+            return 54887;
+            // dates, part, lineorder
+        case 50:
+            return 57671;
+            // customer, supplier, lineorder
+        case 44:
+            return 45638;
+            // customer, part, lineorder
+        case 52:
+            return 48002;
+            // supplier, part, lineorder
+        case 56:
+            return 9252;
+            // dates, customer, supplier, lineorder
+        case 46:
+            return 11002;
+            // dates, customer, part, lineorder
+        case 54:
+            return 11664;
+            // dates, supplier, part, lineorder
+        case 58:
+            return 2174;
+            // customer, supplier, part, lineorder
+        case 60:
+            return 1850;
+            // dates, customer, supplier, part, lineorder
+        case 62:
+            return 468;
+    };
+}
+
+

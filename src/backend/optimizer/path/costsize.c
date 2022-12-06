@@ -4981,6 +4981,8 @@ set_baserel_size_estimates(PlannerInfo *root, RelOptInfo *rel)
     fprintf(fp, "\nLiqilong: Cardinality Estimation in Scan Operator\nLocation: set_baserel_size_estimates\n");
     fprintf(fp, "This relation has %d clauses.\n", list_length(rel->baserestrictinfo));
     fprintf(fp, "Initial row number is %f.\n", rel->tuples);
+    fclose(fp);
+
 //
 //    Relids relids = rel->relids;
 //    int nwords = relids->nwords;
@@ -4991,29 +4993,30 @@ set_baserel_size_estimates(PlannerInfo *root, RelOptInfo *rel)
 //        fprintf(fp, "relid %d = %ld\n", wordnum, w);
 //    }
 
-    if((int)list_length(rel->baserestrictinfo) == 1) {
-        fprintf(fp, "start print clause\n");
-        ListCell *arg;
-        Node * clause = (Node *) linitial(rel->baserestrictinfo);
-        RestrictInfo *rinfo = (RestrictInfo *) clause;
-        if (rinfo->orclause)
-            clause = (Node *) rinfo->orclause;
-        else
-            clause = (Node *) rinfo->clause;
-
-        OpExpr * opclause = (OpExpr *) clause;
-        foreach(arg, opclause->args) {
-            if (IsA(lfirst(arg), Const)) {
-                fprintf(fp, "This arg is a Const. The value of arg is %ld.\n", ((Const *) lfirst(arg))->constvalue);
-            } else if (IsA(lfirst(arg), Var)) {
-                Var* var = (Var *)lfirst(arg);
-                fprintf(fp, "This arg is a Var. ");
-                fprintf(fp, "varno = %d, varattno = %d, vartype = %d, location = %d.\n", var->varno, var->varattno, var->vartype, var->location);
-            }
-            else
-                fprintf(fp, "This arg is not a const or var.\n");
-        }
-    }
+    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+//    if((int)list_length(rel->baserestrictinfo) == 1) {
+//        fprintf(fp, "start print clause\n");
+//        ListCell *arg;
+//        Node * clause = (Node *) linitial(rel->baserestrictinfo);
+//        RestrictInfo *rinfo = (RestrictInfo *) clause;
+//        if (rinfo->orclause)
+//            clause = (Node *) rinfo->orclause;
+//        else
+//            clause = (Node *) rinfo->clause;
+//
+//        OpExpr * opclause = (OpExpr *) clause;
+//        foreach(arg, opclause->args) {
+//            if (IsA(lfirst(arg), Const)) {
+//                fprintf(fp, "This arg is a Const. The value of arg is %ld.\n", ((Const *) lfirst(arg))->constvalue);
+//            } else if (IsA(lfirst(arg), Var)) {
+//                Var* var = (Var *)lfirst(arg);
+//                fprintf(fp, "This arg is a Var. ");
+//                fprintf(fp, "varno = %d, varattno = %d, vartype = %d, location = %d.\n", var->varno, var->varattno, var->vartype, var->location);
+//            }
+//            else
+//                fprintf(fp, "This arg is not a const or var.\n");
+//        }
+//    }
 
     fprintf(fp, "enabld_truth_card: %d\n", enable_truth_card);
     if(enable_truth_card) {

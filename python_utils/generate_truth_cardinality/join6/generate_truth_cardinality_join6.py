@@ -5,13 +5,13 @@ import time
 
 benchmarks = ['join6']
 
-# join6_queries = ['../queries/6join/runnable_6join_query1.sql', '../queries/6join/runnable_6join_query2.sql',
-#                  '../queries/6join/runnable_6join_query3.sql', '../queries/6join/runnable_6join_query4.sql',
-#                  '../queries/6join/runnable_6join_query5.sql', '../queries/6join/runnable_6join_query6.sql',
-#                  '../queries/6join/runnable_6join_query7.sql', '../queries/6join/runnable_6join_query8.sql',
-#                  '../queries/6join/runnable_6join_query9.sql', '../queries/6join/runnable_6join_query10.sql']
+join6_queries = ['../../queries/6join/runnable_6join_query1.sql', '../../queries/6join/runnable_6join_query2.sql',
+                 '../../queries/6join/runnable_6join_query3.sql', '../../queries/6join/runnable_6join_query4.sql',
+                 '../../queries/6join/runnable_6join_query5.sql', '../../queries/6join/runnable_6join_query6.sql',
+                 '../../queries/6join/runnable_6join_query7.sql', '../../queries/6join/runnable_6join_query8.sql',
+                 '../../queries/6join/runnable_6join_query9.sql', '../../queries/6join/runnable_6join_query10.sql']
 
-join6_queries = ['../queries/6join/runnable_6join_query8.sql']
+# join6_queries = ['../queries/6join/runnable_6join_query8.sql']
 
 queries = {'join6': join6_queries}
 
