@@ -2061,6 +2061,37 @@ static struct config_bool ConfigureNamesBool[] =
 
 static struct config_int ConfigureNamesInt[] =
 {
+    {
+        {"benchmark", PGC_POSTMASTER, FILE_LOCATIONS,
+         gettext_noop("The benchmark of query."),
+         NULL,
+         1
+        },
+        &benchmark,
+        0, 0, 10000,
+        NULL, NULL, NULL
+    },
+    {
+        {"query_order", PGC_POSTMASTER, FILE_LOCATIONS,
+         gettext_noop("The order of query to be run."),
+         NULL,
+         1
+        },
+        &query_order,
+        0, 0, 10000,
+        NULL, NULL, NULL
+    },
+    {
+        {"card_type", PGC_POSTMASTER, FILE_LOCATIONS,
+         gettext_noop("Type of cardinality. For example, 0 means cardinalities estimated by pg, "
+                      "1 means truth cardinalities and 2 means card estimated by Neurocard..."),
+         NULL,
+         1
+        },
+        &card_type,
+        0, 0, 10000,
+        NULL, NULL, NULL
+    },
 	{
 		{"archive_timeout", PGC_SIGHUP, WAL_ARCHIVING,
 			gettext_noop("Forces a switch to the next WAL file if a "

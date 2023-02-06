@@ -628,6 +628,7 @@ pg_parse_query(const char *query_string)
 {
 	List	   *raw_parsetree_list;
 
+    query_text = query_string;
 	TRACE_POSTGRESQL_QUERY_PARSE_START(query_string);
 
 	if (log_parser_stats)

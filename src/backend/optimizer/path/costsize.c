@@ -96,6 +96,7 @@
 #include "utils/selfuncs.h"
 #include "utils/spccache.h"
 #include "utils/tuplesort.h"
+include "optimizer/cardprovider.h"
 
 
 /* source-code-compatibility hacks for pull_varnos() API change */
@@ -4653,12 +4654,24 @@ set_baserel_size_estimates(PlannerInfo *root, RelOptInfo *rel)
 	/* Should only be applied to base relations */
 	Assert(rel->relid > 0);
 
-	nrows = rel->tuples *
-		clauselist_selectivity(root,
-							   rel->baserestrictinfo,
-							   0,
-							   JOIN_INNER,
-							   NULL);
+    if(enable_truth_card) {
+        int total_relids = (int)rel->relids->words[0];
+        fprintf(fp, "benchmark=%d, query_order=%d, relids=%d\n", benchmark, query_order, total_relids);
+        nrows = get_truth_cardinality(total_relids);
+    } else {
+        nrows = rel->tuples *
+                clauselist_selectivity(root,
+                                       rel->baserestrictinfo,
+                                       0,
+                                       JOIN_INNER,
+                                       NULL);
+    }
+//	nrows = rel->tuples *
+//		clauselist_selectivity(root,
+//							   rel->baserestrictinfo,
+//							   0,
+//							   JOIN_INNER,
+//							   NULL);
 
 	rel->rows = clamp_row_est(nrows);
 
