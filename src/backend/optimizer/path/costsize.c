@@ -96,7 +96,7 @@
 #include "utils/selfuncs.h"
 #include "utils/spccache.h"
 #include "utils/tuplesort.h"
-include "optimizer/cardprovider.h"
+#include "optimizer/cardprovider.h"
 
 
 /* source-code-compatibility hacks for pull_varnos() API change */
@@ -4654,18 +4654,28 @@ set_baserel_size_estimates(PlannerInfo *root, RelOptInfo *rel)
 	/* Should only be applied to base relations */
 	Assert(rel->relid > 0);
 
-    if(enable_truth_card) {
-        int total_relids = (int)rel->relids->words[0];
-        fprintf(fp, "benchmark=%d, query_order=%d, relids=%d\n", benchmark, query_order, total_relids);
-        nrows = get_truth_cardinality(total_relids);
-    } else {
+    FILE * fp;
+    fp = fopen("/home/dbgroup/postgres/pg_log.txt", "a+");
+    fprintf(fp, "\nLiqilong: Cardinality Estimation in Scan Operator\nLocation: set_baserel_size_estimates\n");
+    fprintf(fp, "This relation has %d clauses.\n", list_length(rel->baserestrictinfo));
+    fprintf(fp, "Initial row number is %f.\n", rel->tuples);
+    fclose(fp);
+
+    if(card_type==0){
         nrows = rel->tuples *
                 clauselist_selectivity(root,
                                        rel->baserestrictinfo,
                                        0,
                                        JOIN_INNER,
                                        NULL);
+    } else{
+        int total_relids = (int)rel->relids->words[0];
+        nrows = get_cardinality(total_relids);
     }
+
+    fp = fopen("/home/dbgroup/postgres/pg_log.txt", "a+");
+    fprintf(fp, "Relation %d's cardinality is %f.\n", (int)rel->relid, nrows);
+    fclose(fp);
 //	nrows = rel->tuples *
 //		clauselist_selectivity(root,
 //							   rel->baserestrictinfo,
@@ -4744,14 +4754,33 @@ set_joinrel_size_estimates(PlannerInfo *root, RelOptInfo *rel,
 						   SpecialJoinInfo *sjinfo,
 						   List *restrictlist)
 {
-	rel->rows = calc_joinrel_size_estimate(root,
-										   rel,
-										   outer_rel,
-										   inner_rel,
-										   outer_rel->rows,
-										   inner_rel->rows,
-										   sjinfo,
-										   restrictlist);
+    FILE* fp;
+    fp = fopen("/home/dbgroup/postgres/pg_log.txt", "a+");
+    fprintf(fp, "\nLiqilong: Cardinality Estimation in Join Operator\nLocation: set_joinrel_size_estimates\n");
+    fprintf(fp, "Outer_rel's cardinality is %f.\n", outer_rel->rows);
+    fprintf(fp, "Inner_rel's cardinality is %f.\n", inner_rel->rows);
+    fclose(fp);
+
+    int outer_total_relids = outer_rel->relids->words[0];
+    int inner_total_relids = inner_rel->relids->words[0];
+    int total_relids = outer_total_relids + inner_total_relids;
+
+    if(card_type==0){
+        rel->rows = calc_joinrel_size_estimate(root,
+                                               rel,
+                                               outer_rel,
+                                               inner_rel,
+                                               outer_rel->rows,
+                                               inner_rel->rows,
+                                               sjinfo,
+                                               restrictlist);
+    } else{
+        rel->rows  = get_cardinality(total_relids);
+    }
+
+    fp = fopen("/home/dbgroup/postgres/pg_log.txt", "a+");
+    fprintf(fp, "Result cardinality is %f.\n", rel->rows);
+    fclose(fp);
 }
 
 /*

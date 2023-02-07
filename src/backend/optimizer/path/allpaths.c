@@ -231,6 +231,14 @@ make_one_rel(PlannerInfo *root, List *joinlist)
 	 */
 	Assert(bms_equal(rel->relids, root->all_baserels));
 
+    /*
+     * free malloced storage for learning ces
+     */
+    if(cardinalities!=NULL) {
+        free(cardinalities);
+        cardinalities = NULL;
+    }
+
 	return rel;
 }
 

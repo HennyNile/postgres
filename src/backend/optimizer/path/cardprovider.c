@@ -1,20 +1,58 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "postgres.h"
 #include "miscadmin.h"
 
-int** cardinalities;
+void generate_cardinality();
+
+double get_cardinality(int total_relids);
 
 void generate_cardinality(){
+    char* command_part_1 = "zsh -i /home/dbgroup/workspace/liqilong/MULTI_LEARNED_CARDINALITY_ESTIMATORS/c2e/exp/mce/run.sh \"";
+    char* command_part_2 = query_text;
+
     if(card_type==2){
-        system("zsh -i test.sh \"SELECT COUNT(*) FROM movie_companies mc,title t,movie_info_idx mi_idx WHERE "
-               "t.id=mc.movie_id AND t.id=mi_idx.movie_id AND mi_idx.info_type_id=113 AND mc.company_type_id=2 "
-               "AND t.production_year>2005 AND t.production_year<2010;\" Neurocard neurocard");
+        char* command_part_3 = "\" Neurocard neurocard";
+        char* command = (char *) malloc(strlen(command_part_1) + strlen(command_part_2) + strlen(command_part_3));
+        sprintf(command, "%s%s%s", command_part_1, command_part_2, command_part_3);
+        FILE * fp = fopen("/home/dbgroup/postgres/pg_log.txt", "a+");
+        fprintf(fp, "%s\n", command);
+        fclose(fp);
+        system(command);
     }
+
+    //load estimated cardinalities
+    FILE *fp = fopen("/home/dbgroup/workspace/liqilong/MULTI_LEARNED_CARDINALITY_ESTIMATORS/c2e/exp/mce/est_cards.txt", "r");
+    int relid, card, b=1;
+    card_num = 0;
+    while((b = fscanf(fp, "%d,%d\n", &relid, &card) != -1)){
+        card_num += 1;
+    }
+    fclose(fp);
+
+    cardinalities = (int*)malloc(card_num * 2 * sizeof(int));
+    int index = 0;
+    fp = fopen("/home/dbgroup/workspace/liqilong/MULTI_LEARNED_CARDINALITY_ESTIMATORS/c2e/exp/mce/est_cards.txt", "r");
+    while((b = fscanf(fp, "%d,%d\n", &relid, &card)!=-1)){
+        cardinalities[index*2] = relid;
+        cardinalities[index*2+1] = card;
+        index += 1;
+    }
+    fclose(fp);
 }
 
 double get_cardinality(int total_relids){
     if(cardinalities==NULL){
-        generate_cardinality()
+        generate_cardinality();
     }
 
+    for(int i=0; i<card_num; i++){
+        if(cardinalities[i*2]==total_relids){
+            return (double)cardinalities[i*2+1];
+        }
+    }
 
+    // no estimated cardinality for this relids, return a big number
+    return -1;
 }

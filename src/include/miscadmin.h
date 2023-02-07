@@ -165,10 +165,12 @@ extern PGDLLIMPORT bool IsBinaryUpgrade;
 
 extern PGDLLIMPORT bool ExitOnAnyError;
 
-extern PGDLLIMPORT int enable_truth_card;
+extern PGDLLIMPORT int card_type;
 extern PGDLLIMPORT int benchmark;
 extern PGDLLIMPORT int query_order;
 extern PGDLLIMPORT char *query_text;
+extern PGDLLIMPORT int* cardinalities;
+extern PGDLLIMPORT int card_num;
 
 extern PGDLLIMPORT char *DataDir;
 extern PGDLLIMPORT int data_directory_mode;

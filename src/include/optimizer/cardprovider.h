@@ -7,4 +7,4 @@
 
 #endif //POSTGRES_LQL_CARDPROVIDER_H
 
-double get_truth_cardinality(int total_relids);
+double get_cardinality(int total_relids);

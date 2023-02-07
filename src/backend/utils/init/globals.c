@@ -60,10 +60,12 @@ struct Latch *MyLatch;
  * query_order is the order of query in the benchmark.
  *
  * */
-int        card_type = 0;
+int        card_type;
 int        benchmark = 0;
 int        query_order = 0;
-char*       query_text;
+char*      query_text;
+int*       cardinalities;
+int        card_num = 0;
 
 /*
  * DataDir is the absolute path to the top level of the PGDATA directory tree.
