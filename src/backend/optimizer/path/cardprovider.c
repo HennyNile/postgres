@@ -51,6 +51,56 @@ double get_truth_cardinality_job_query_23(int total_relids);
 double get_truth_cardinality_job_query_24(int total_relids);
 double get_truth_cardinality_job_query_25(int total_relids);
 double get_truth_cardinality_job_query_26(int total_relids);
+double get_truth_cardinality_cost_model_query_1(int total_relids);
+double get_truth_cardinality_cost_model_query_2(int total_relids);
+double get_truth_cardinality_cost_model_query_3(int total_relids);
+double get_truth_cardinality_cost_model_query_4(int total_relids);
+double get_truth_cardinality_cost_model_query_5(int total_relids);
+double get_truth_cardinality_cost_model_query_6(int total_relids);
+double get_truth_cardinality_cost_model_query_7(int total_relids);
+double get_truth_cardinality_cost_model_query_8(int total_relids);
+double get_truth_cardinality_cost_model_query_9(int total_relids);
+double get_truth_cardinality_cost_model_query_10(int total_relids);
+double get_truth_cardinality_cost_model_query_11(int total_relids);
+double get_truth_cardinality_cost_model_query_12(int total_relids);
+double get_truth_cardinality_cost_model_query_13(int total_relids);
+double get_truth_cardinality_cost_model_query_14(int total_relids);
+double get_truth_cardinality_cost_model_query_15(int total_relids);
+double get_truth_cardinality_cost_model_query_16(int total_relids);
+double get_truth_cardinality_cost_model_query_17(int total_relids);
+double get_truth_cardinality_cost_model_query_18(int total_relids);
+double get_truth_cardinality_cost_model_query_19(int total_relids);
+double get_truth_cardinality_cost_model_query_20(int total_relids);
+double get_truth_cardinality_cost_model_query_21(int total_relids);
+double get_truth_cardinality_cost_model_query_22(int total_relids);
+double get_truth_cardinality_cost_model_query_23(int total_relids);
+double get_truth_cardinality_cost_model_query_24(int total_relids);
+double get_truth_cardinality_cost_model_query_25(int total_relids);
+double get_truth_cardinality_cost_model_query_26(int total_relids);
+double get_truth_cardinality_cost_model_query_27(int total_relids);
+double get_truth_cardinality_cost_model_query_28(int total_relids);
+double get_truth_cardinality_cost_model_query_29(int total_relids);
+double get_truth_cardinality_cost_model_query_30(int total_relids);
+double get_truth_cardinality_cost_model_query_31(int total_relids);
+double get_truth_cardinality_cost_model_query_32(int total_relids);
+double get_truth_cardinality_cost_model_query_33(int total_relids);
+double get_truth_cardinality_cost_model_query_34(int total_relids);
+double get_truth_cardinality_cost_model_query_35(int total_relids);
+double get_truth_cardinality_cost_model_query_36(int total_relids);
+double get_truth_cardinality_cost_model_query_37(int total_relids);
+double get_truth_cardinality_cost_model_query_38(int total_relids);
+double get_truth_cardinality_cost_model_query_39(int total_relids);
+double get_truth_cardinality_cost_model_query_40(int total_relids);
+double get_truth_cardinality_cost_model_query_41(int total_relids);
+double get_truth_cardinality_cost_model_query_42(int total_relids);
+double get_truth_cardinality_cost_model_query_43(int total_relids);
+double get_truth_cardinality_cost_model_query_44(int total_relids);
+double get_truth_cardinality_cost_model_query_45(int total_relids);
+double get_truth_cardinality_cost_model_query_46(int total_relids);
+double get_truth_cardinality_cost_model_query_47(int total_relids);
+double get_truth_cardinality_cost_model_query_48(int total_relids);
+double get_truth_cardinality_cost_model_query_49(int total_relids);
+
 
 double
 get_truth_cardinality(int total_relids)
@@ -78,8 +128,6 @@ get_truth_cardinality(int total_relids)
                     return get_truth_cardinality_6joins_query_9(total_relids);
                 case 10:
                     return get_truth_cardinality_6joins_query_10(total_relids);
-                default:
-                    return -1;
             }
             break;
         case 2: // ssb_1
@@ -168,10 +216,111 @@ get_truth_cardinality(int total_relids)
                     return get_truth_cardinality_job_query_26(total_relids);
             }
             break;
+        case 4: // self-designed benchmark to validate cost model
+            switch (query_order) {
+                case 1:
+                    return get_truth_cardinality_cost_model_query_1(total_relids);
+                case 2:
+                    return get_truth_cardinality_cost_model_query_2(total_relids);
+                case 3:
+                    return get_truth_cardinality_cost_model_query_3(total_relids);
+                case 4:
+                    return get_truth_cardinality_cost_model_query_4(total_relids);
+                case 5:
+                    return get_truth_cardinality_cost_model_query_5(total_relids);
+                case 6:
+                    return get_truth_cardinality_cost_model_query_6(total_relids);
+                case 7:
+                    return get_truth_cardinality_cost_model_query_7(total_relids);
+                case 8:
+                    return get_truth_cardinality_cost_model_query_8(total_relids);
+                case 9:
+                    return get_truth_cardinality_cost_model_query_9(total_relids);
+                case 10:
+                    return get_truth_cardinality_cost_model_query_10(total_relids);
+                case 11:
+                    return get_truth_cardinality_cost_model_query_11(total_relids);
+                case 12:
+                    return get_truth_cardinality_cost_model_query_12(total_relids);
+                case 13:
+                    return get_truth_cardinality_cost_model_query_13(total_relids);
+                case 14:
+                    return get_truth_cardinality_cost_model_query_14(total_relids);
+                case 15:
+                    return get_truth_cardinality_cost_model_query_15(total_relids);
+                case 16:
+                    return get_truth_cardinality_cost_model_query_16(total_relids);
+                case 17:
+                    return get_truth_cardinality_cost_model_query_17(total_relids);
+                case 18:
+                    return get_truth_cardinality_cost_model_query_18(total_relids);
+                case 19:
+                    return get_truth_cardinality_cost_model_query_19(total_relids);
+                case 20:
+                    return get_truth_cardinality_cost_model_query_20(total_relids);
+                case 21:
+                    return get_truth_cardinality_cost_model_query_21(total_relids);
+                case 22:
+                    return get_truth_cardinality_cost_model_query_22(total_relids);
+                case 23:
+                    return get_truth_cardinality_cost_model_query_23(total_relids);
+                case 24:
+                    return get_truth_cardinality_cost_model_query_24(total_relids);
+                case 25:
+                    return get_truth_cardinality_cost_model_query_25(total_relids);
+                case 26:
+                    return get_truth_cardinality_cost_model_query_26(total_relids);
+                case 27:
+                    return get_truth_cardinality_cost_model_query_27(total_relids);
+                case 28:
+                    return get_truth_cardinality_cost_model_query_28(total_relids);
+                case 29:
+                    return get_truth_cardinality_cost_model_query_29(total_relids);
+                case 30:
+                    return get_truth_cardinality_cost_model_query_30(total_relids);
+                case 31:
+                    return get_truth_cardinality_cost_model_query_31(total_relids);
+                case 32:
+                    return get_truth_cardinality_cost_model_query_32(total_relids);
+                case 33:
+                    return get_truth_cardinality_cost_model_query_33(total_relids);
+                case 34:
+                    return get_truth_cardinality_cost_model_query_34(total_relids);
+                case 35:
+                    return get_truth_cardinality_cost_model_query_35(total_relids);
+                case 36:
+                    return get_truth_cardinality_cost_model_query_36(total_relids);
+                case 37:
+                    return get_truth_cardinality_cost_model_query_37(total_relids);
+                case 38:
+                    return get_truth_cardinality_cost_model_query_38(total_relids);
+                case 39:
+                    return get_truth_cardinality_cost_model_query_39(total_relids);
+                case 40:
+                    return get_truth_cardinality_cost_model_query_40(total_relids);
+                case 41:
+                    return get_truth_cardinality_cost_model_query_41(total_relids);
+                case 42:
+                    return get_truth_cardinality_cost_model_query_42(total_relids);
+                case 43:
+                    return get_truth_cardinality_cost_model_query_43(total_relids);
+                case 44:
+                    return get_truth_cardinality_cost_model_query_44(total_relids);
+                case 45:
+                    return get_truth_cardinality_cost_model_query_45(total_relids);
+                case 46:
+                    return get_truth_cardinality_cost_model_query_46(total_relids);
+                case 47:
+                    return get_truth_cardinality_cost_model_query_47(total_relids);
+                case 48:
+                    return get_truth_cardinality_cost_model_query_48(total_relids);
+                case 49:
+                    return get_truth_cardinality_cost_model_query_49(total_relids);
+            }
         default:
-            return -1;
+            return 3200000000;
     }
-    return -1;
+    return 3200000000;
 }
 
 // [title, movie_companies, cast_info, movie_info_idx, movie_keyword, keyword, movie_link, ]
@@ -16419,5 +16568,544 @@ get_truth_cardinality_job_query_26(int total_relids)
 		case 8190:
 			return 1728;
 	};
+}
+
+// [cast_info ci, ]
+double
+get_truth_cardinality_cost_model_query_1(int total_relids)
+{
+    switch (total_relids) {
+        // cast_info ci
+        case 2:
+            return 36244344;
+    };
+}
+
+// [movie_info mi, ]
+double
+get_truth_cardinality_cost_model_query_2(int total_relids)
+{
+    switch (total_relids) {
+        // movie_info mi
+        case 2:
+            return 14835720;
+    };
+}
+
+// [name n, ]
+double
+get_truth_cardinality_cost_model_query_3(int total_relids)
+{
+    switch (total_relids) {
+        // name n
+        case 2:
+            return 4167491;
+    };
+}
+
+// [char_name cname, ]
+double
+get_truth_cardinality_cost_model_query_4(int total_relids)
+{
+    switch (total_relids) {
+        // char_name cname
+        case 2:
+            return 3140339;
+    };
+}
+
+// [person_info pi, ]
+double
+get_truth_cardinality_cost_model_query_5(int total_relids)
+{
+    switch (total_relids) {
+        // person_info pi
+        case 2:
+            return 2963664;
+    };
+}
+
+// [movie_companies mc, ]
+double
+get_truth_cardinality_cost_model_query_6(int total_relids)
+{
+    switch (total_relids) {
+        // movie_companies mc
+        case 2:
+            return 2609129;
+    };
+}
+
+// [title t, ]
+double
+get_truth_cardinality_cost_model_query_7(int total_relids)
+{
+    switch (total_relids) {
+        // title t
+        case 2:
+            return 2528312;
+    };
+}
+
+// [movie_info_idx mi_idx, ]
+double
+get_truth_cardinality_cost_model_query_8(int total_relids)
+{
+    switch (total_relids) {
+        // movie_info_idx mi_idx
+        case 2:
+            return 1380035;
+    };
+}
+
+// [aka_name an, ]
+double
+get_truth_cardinality_cost_model_query_9(int total_relids)
+{
+    switch (total_relids) {
+        // aka_name an
+        case 2:
+            return 901343;
+    };
+}
+
+// [aka_title at, ]
+double
+get_truth_cardinality_cost_model_query_10(int total_relids)
+{
+    switch (total_relids) {
+        // aka_title at
+        case 2:
+            return 361472;
+    };
+}
+
+// [company_name cn, ]
+double
+get_truth_cardinality_cost_model_query_11(int total_relids)
+{
+    switch (total_relids) {
+        // company_name cn
+        case 2:
+            return 234997;
+    };
+}
+
+// [complete_cast cc, ]
+double
+get_truth_cardinality_cost_model_query_12(int total_relids)
+{
+    switch (total_relids) {
+        // complete_cast cc
+        case 2:
+            return 135086;
+    };
+}
+
+// [keyword k, ]
+double
+get_truth_cardinality_cost_model_query_13(int total_relids)
+{
+    switch (total_relids) {
+        // keyword k
+        case 2:
+            return 134170;
+    };
+}
+
+// [info_type it, ]
+double
+get_truth_cardinality_cost_model_query_14(int total_relids)
+{
+    switch (total_relids) {
+        // info_type it
+        case 2:
+            return 113;
+    };
+}
+
+// [link_type lt, ]
+double
+get_truth_cardinality_cost_model_query_15(int total_relids)
+{
+    switch (total_relids) {
+        // link_type lt
+        case 2:
+            return 18;
+    };
+}
+
+// [role_type rt, ]
+double
+get_truth_cardinality_cost_model_query_16(int total_relids)
+{
+    switch (total_relids) {
+        // role_type rt
+        case 2:
+            return 12;
+    };
+}
+
+// [kind_type kt, ]
+double
+get_truth_cardinality_cost_model_query_17(int total_relids)
+{
+    switch (total_relids) {
+        // kind_type kt
+        case 2:
+            return 7;
+    };
+}
+
+// [comp_cast_type cct, ]
+double
+get_truth_cardinality_cost_model_query_18(int total_relids)
+{
+    switch (total_relids) {
+        // comp_cast_type cct
+        case 2:
+            return 4;
+    };
+}
+
+// [company_type ct, ]
+double
+get_truth_cardinality_cost_model_query_19(int total_relids)
+{
+    switch (total_relids) {
+        // company_type ct
+        case 2:
+            return 4;
+    };
+}
+
+// [cast_info ci, ]
+double
+get_truth_cardinality_cost_model_query_20(int total_relids)
+{
+    switch (total_relids) {
+        // cast_info ci
+        case 2:
+            return 18115791;
+    };
+}
+
+// [movie_info mi, ]
+double
+get_truth_cardinality_cost_model_query_21(int total_relids)
+{
+    switch (total_relids) {
+        // movie_info mi
+        case 2:
+            return 7401796;
+    };
+}
+
+// [movie_keyword mk, ]
+double
+get_truth_cardinality_cost_model_query_22(int total_relids)
+{
+    switch (total_relids) {
+        // movie_keyword mk
+        case 2:
+            return 2261964;
+    };
+}
+
+// [name n, ]
+double
+get_truth_cardinality_cost_model_query_23(int total_relids)
+{
+    switch (total_relids) {
+        // name n
+        case 2:
+            return 2083574;
+    };
+}
+
+// [char_name cname, ]
+double
+get_truth_cardinality_cost_model_query_24(int total_relids)
+{
+    switch (total_relids) {
+        // char_name cname
+        case 2:
+            return 1570145;
+    };
+}
+
+// [person_info pi, ]
+double
+get_truth_cardinality_cost_model_query_25(int total_relids)
+{
+    switch (total_relids) {
+        // person_info pi
+        case 2:
+            return 1483030;
+    };
+}
+
+// [movie_companies mc, ]
+double
+get_truth_cardinality_cost_model_query_26(int total_relids)
+{
+    switch (total_relids) {
+        // movie_companies mc
+        case 2:
+            return 1304563;
+    };
+}
+
+// [title t, ]
+double
+get_truth_cardinality_cost_model_query_27(int total_relids)
+{
+    switch (total_relids) {
+        // title t
+        case 2:
+            return 1264262;
+    };
+}
+
+// [movie_info_idx mi_idx, ]
+double
+get_truth_cardinality_cost_model_query_28(int total_relids)
+{
+    switch (total_relids) {
+        // movie_info_idx mi_idx
+        case 2:
+            return 690016;
+    };
+}
+
+// [aka_name an, ]
+double
+get_truth_cardinality_cost_model_query_29(int total_relids)
+{
+    switch (total_relids) {
+        // aka_name an
+        case 2:
+            return 450670;
+    };
+}
+
+// [aka_title at, ]
+double
+get_truth_cardinality_cost_model_query_30(int total_relids)
+{
+    switch (total_relids) {
+        // aka_title at
+        case 2:
+            return 171766;
+    };
+}
+
+// [company_name cn, ]
+double
+get_truth_cardinality_cost_model_query_31(int total_relids)
+{
+    switch (total_relids) {
+        // company_name cn
+        case 2:
+            return 117497;
+    };
+}
+
+// [complete_cast cc, ]
+double
+get_truth_cardinality_cost_model_query_32(int total_relids)
+{
+    switch (total_relids) {
+        // complete_cast cc
+        case 2:
+            return 67542;
+    };
+}
+
+// [keyword k, ]
+double
+get_truth_cardinality_cost_model_query_33(int total_relids)
+{
+    switch (total_relids) {
+        // keyword k
+        case 2:
+            return 67084;
+    };
+}
+
+// [movie_link ml, ]
+double
+get_truth_cardinality_cost_model_query_34(int total_relids)
+{
+    switch (total_relids) {
+        // movie_link ml
+        case 2:
+            return 14997;
+    };
+}
+
+// [cast_info ci, ]
+double
+get_truth_cardinality_cost_model_query_35(int total_relids)
+{
+    switch (total_relids) {
+        // cast_info ci
+        case 2:
+            return 36230;
+    };
+}
+
+// [movie_info mi, ]
+double
+get_truth_cardinality_cost_model_query_36(int total_relids)
+{
+    switch (total_relids) {
+        // movie_info mi
+        case 2:
+            return 14802;
+    };
+}
+
+// [movie_keyword mk, ]
+double
+get_truth_cardinality_cost_model_query_37(int total_relids)
+{
+    switch (total_relids) {
+        // movie_keyword mk
+        case 2:
+            return 4522;
+    };
+}
+
+// [name n, ]
+double
+get_truth_cardinality_cost_model_query_38(int total_relids)
+{
+    switch (total_relids) {
+        // name n
+        case 2:
+            return 4166;
+    };
+}
+
+// [char_name cname, ]
+double
+get_truth_cardinality_cost_model_query_39(int total_relids)
+{
+    switch (total_relids) {
+        // char_name cname
+        case 2:
+            return 3139;
+    };
+}
+
+// [person_info pi, ]
+double
+get_truth_cardinality_cost_model_query_40(int total_relids)
+{
+    switch (total_relids) {
+        // person_info pi
+        case 2:
+            return 2965;
+    };
+}
+
+// [movie_companies mc, ]
+double
+get_truth_cardinality_cost_model_query_41(int total_relids)
+{
+    switch (total_relids) {
+        // movie_companies mc
+        case 2:
+            return 2608;
+    };
+}
+
+// [title t, ]
+double
+get_truth_cardinality_cost_model_query_42(int total_relids)
+{
+    switch (total_relids) {
+        // title t
+        case 2:
+            return 2527;
+    };
+}
+
+// [movie_info_idx mi_idx, ]
+double
+get_truth_cardinality_cost_model_query_43(int total_relids)
+{
+    switch (total_relids) {
+        // movie_info_idx mi_idx
+        case 2:
+            return 1379;
+    };
+}
+
+// [aka_name an, ]
+double
+get_truth_cardinality_cost_model_query_44(int total_relids)
+{
+    switch (total_relids) {
+        // aka_name an
+        case 2:
+            return 900;
+    };
+}
+
+// [aka_title at, ]
+double
+get_truth_cardinality_cost_model_query_45(int total_relids)
+{
+    switch (total_relids) {
+        // aka_title at
+        case 2:
+            return 344;
+    };
+}
+
+// [company_name cn, ]
+double
+get_truth_cardinality_cost_model_query_46(int total_relids)
+{
+    switch (total_relids) {
+        // company_name cn
+        case 2:
+            return 233;
+    };
+}
+
+// [complete_cast cc, ]
+double
+get_truth_cardinality_cost_model_query_47(int total_relids)
+{
+    switch (total_relids) {
+        // complete_cast cc
+        case 2:
+            return 134;
+    };
+}
+
+// [keyword k, ]
+double
+get_truth_cardinality_cost_model_query_48(int total_relids)
+{
+    switch (total_relids) {
+        // keyword k
+        case 2:
+            return 133;
+    };
+}
+
+// [movie_link ml, ]
+double
+get_truth_cardinality_cost_model_query_49(int total_relids)
+{
+    switch (total_relids) {
+        // movie_link ml
+        case 2:
+            return 28;
+    };
 }
 

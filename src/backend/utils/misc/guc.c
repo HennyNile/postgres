@@ -1013,7 +1013,7 @@ static const unit_conversion time_unit_conversion_table[] =
 static struct config_bool ConfigureNamesBool[] =
 {
     {
-        {"enable_truth_card", PGC_POSTMASTER, FILE_LOCATIONS,
+        {"enable_truth_card", PGC_USERSET, RESOURCES_ASYNCHRONOUS,
          gettext_noop("Enable feeding truth."),
          NULL,
          1
@@ -2192,7 +2192,7 @@ static struct config_bool ConfigureNamesBool[] =
 static struct config_int ConfigureNamesInt[] =
 {
     {
-        {"benchmark", PGC_POSTMASTER, FILE_LOCATIONS,
+        {"benchmark", PGC_USERSET, RESOURCES_ASYNCHRONOUS,
          gettext_noop("The benchmark of query."),
          NULL,
          1
@@ -2202,7 +2202,7 @@ static struct config_int ConfigureNamesInt[] =
         NULL, NULL, NULL
     },
     {
-        {"query_order", PGC_POSTMASTER, FILE_LOCATIONS,
+        {"query_order", PGC_USERSET, RESOURCES_ASYNCHRONOUS,
             gettext_noop("The order of query to be run."),
             NULL,
             1
