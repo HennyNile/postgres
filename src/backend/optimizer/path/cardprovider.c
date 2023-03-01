@@ -11,19 +11,24 @@ double get_cardinality(int total_relids);
 void generate_cardinality(){
     char* command_part_1 = "zsh -i /home/dbgroup/workspace/liqilong/MULTI_LEARNED_CARDINALITY_ESTIMATORS/c2e/exp/mce/run.sh \"";
     char* command_part_2 = query_text;
+    char* command_part_3;
+    FILE * fp;
 
     if(card_type==2){
-        char* command_part_3 = "\" Neurocard neurocard";
-        char* command = (char *) malloc(strlen(command_part_1) + strlen(command_part_2) + strlen(command_part_3));
-        sprintf(command, "%s%s%s", command_part_1, command_part_2, command_part_3);
-        FILE * fp = fopen("/home/dbgroup/postgres/pg_log.txt", "a+");
-        fprintf(fp, "%s\n", command);
-        fclose(fp);
-        system(command);
+        command_part_3 = "\" Neurocard neurocard";
+    } else if(card_type==3){
+        command_part_3 = "\" MSCN mscn";
     }
 
+    char* command = (char *) malloc(strlen(command_part_1) + strlen(command_part_2) + strlen(command_part_3));
+    sprintf(command, "%s%s%s", command_part_1, command_part_2, command_part_3);
+    fp = fopen("/home/dbgroup/postgres/pg_log.txt", "a+");
+    fprintf(fp, "%s\n", command);
+    fclose(fp);
+    system(command);
+
     //load estimated cardinalities
-    FILE *fp = fopen("/home/dbgroup/workspace/liqilong/MULTI_LEARNED_CARDINALITY_ESTIMATORS/c2e/exp/mce/est_cards.txt", "r");
+    fp = fopen("/home/dbgroup/workspace/liqilong/MULTI_LEARNED_CARDINALITY_ESTIMATORS/c2e/exp/mce/est_cards.txt", "r");
     int relid, card, b=1;
     card_num = 0;
     while((b = fscanf(fp, "%d,%d\n", &relid, &card) != -1)){

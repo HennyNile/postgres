@@ -2062,7 +2062,7 @@ static struct config_bool ConfigureNamesBool[] =
 static struct config_int ConfigureNamesInt[] =
 {
     {
-        {"benchmark", PGC_POSTMASTER, FILE_LOCATIONS,
+        {"benchmark", PGC_USERSET, RESOURCES_ASYNCHRONOUS,
          gettext_noop("The benchmark of query."),
          NULL,
          1
@@ -2072,7 +2072,7 @@ static struct config_int ConfigureNamesInt[] =
         NULL, NULL, NULL
     },
     {
-        {"query_order", PGC_POSTMASTER, FILE_LOCATIONS,
+        {"query_order", PGC_USERSET, RESOURCES_ASYNCHRONOUS,
          gettext_noop("The order of query to be run."),
          NULL,
          1
@@ -2082,7 +2082,7 @@ static struct config_int ConfigureNamesInt[] =
         NULL, NULL, NULL
     },
     {
-        {"card_type", PGC_POSTMASTER, FILE_LOCATIONS,
+        {"card_type", PGC_USERSET, RESOURCES_ASYNCHRONOUS,
          gettext_noop("Type of cardinality. For example, 0 means cardinalities estimated by pg, "
                       "1 means truth cardinalities and 2 means card estimated by Neurocard..."),
          NULL,
