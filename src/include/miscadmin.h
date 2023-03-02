@@ -169,7 +169,7 @@ extern PGDLLIMPORT int card_type;
 extern PGDLLIMPORT int benchmark;
 extern PGDLLIMPORT int query_order;
 extern PGDLLIMPORT char *query_text;
-extern PGDLLIMPORT int* cardinalities;
+extern PGDLLIMPORT long* cardinalities;
 extern PGDLLIMPORT int card_num;
 
 extern PGDLLIMPORT char *DataDir;

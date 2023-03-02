@@ -29,17 +29,18 @@ void generate_cardinality(){
 
     //load estimated cardinalities
     fp = fopen("/home/dbgroup/workspace/liqilong/MULTI_LEARNED_CARDINALITY_ESTIMATORS/c2e/exp/mce/est_cards.txt", "r");
-    int relid, card, b=1;
+    long relid, card;
+    int b=1;
     card_num = 0;
-    while((b = fscanf(fp, "%d,%d\n", &relid, &card) != -1)){
+    while((b = fscanf(fp, "%ld,%ld\n", &relid, &card) != -1)){
         card_num += 1;
     }
     fclose(fp);
 
-    cardinalities = (int*)malloc(card_num * 2 * sizeof(int));
+    cardinalities = (long*)malloc(card_num * 2 * sizeof(long));
     int index = 0;
     fp = fopen("/home/dbgroup/workspace/liqilong/MULTI_LEARNED_CARDINALITY_ESTIMATORS/c2e/exp/mce/est_cards.txt", "r");
-    while((b = fscanf(fp, "%d,%d\n", &relid, &card)!=-1)){
+    while((b = fscanf(fp, "%ld,%ld\n", &relid, &card)!=-1)){
         cardinalities[index*2] = relid;
         cardinalities[index*2+1] = card;
         index += 1;

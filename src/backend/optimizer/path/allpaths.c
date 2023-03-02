@@ -234,10 +234,16 @@ make_one_rel(PlannerInfo *root, List *joinlist)
     /*
      * free malloced storage for learning ces
      */
+    File *fp = fopen("/home/dbgroup/postgres/pg_log.txt", "a+");
+    fprintf(fp, "\nFree cardinalities...\n");
+    fclose(fp);
     if(cardinalities!=NULL) {
         free(cardinalities);
         cardinalities = NULL;
     }
+    fp = fopen("/home/dbgroup/postgres/pg_log.txt", "a+");
+    fprintf(fp, "\nFree cardinalities finished!\n");
+    fclose(fp);
 
 	return rel;
 }

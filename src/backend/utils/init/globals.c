@@ -64,7 +64,7 @@ int        card_type;
 int        benchmark = 0;
 int        query_order = 0;
 char*      query_text;
-int*       cardinalities;
+long*       cardinalities;
 int        card_num = 0;
 
 /*
