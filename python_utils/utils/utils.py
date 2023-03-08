@@ -301,6 +301,8 @@ def run_cat_cost_running_time(queries, run_times, start_query_order, enable_prin
     for i in range(len(queries)):
         modify_pg_conf_parameters(enable_truth_card=True, benchmark=4, query_order=query_order)
         query_order += 1
+        # if query_order == 36:
+        #     query_order += 1
         query = queries[i]
         print('[INFO] query ' + str(i) + ': ' + query)
         # run query and catch running time
