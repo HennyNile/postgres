@@ -20,7 +20,7 @@ WHERE cn.country_code ='[us]'
   AND t.id = mc.movie_id
   AND mc.company_id = cn.id
   AND an.person_id = ci.person_id
-  AND ci.movie_id = 0mc.movie_id
+  AND ci.movie_id = mc.movie_id
   AND ci.movie_id = mk.movie_id
   AND mc.movie_id = mk.movie_id;
 
