@@ -544,6 +544,11 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 	double		rand_heap_pages;
 	double		index_pages;
 
+    FILE* fp;
+    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fprintf(fp, "\nLiqilong: Cost Model in IndexScan Operator\nLocation: cost_index\n");
+    fclose(fp);
+
 	/* Should only be applied to base relations */
 	Assert(IsA(baserel, RelOptInfo) &&
 		   IsA(index, IndexOptInfo));
@@ -590,6 +595,10 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 				   &indexStartupCost, &indexTotalCost,
 				   &indexSelectivity, &indexCorrelation,
 				   &index_pages);
+    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fprintf(fp, "indexStartUpCost=%f, indexTotalCost=%f, indexSelectivity=%f, indexCorrelation=%f, index_pages=%f.\n",
+            indexStartupCost, indexTotalCost, indexSelectivity, indexCorrelation, index_pages);
+    fclose(fp);
 
 	/*
 	 * Save amcostestimate's results for possible use in bitmap scan planning.
@@ -610,6 +619,11 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 	get_tablespace_page_costs(baserel->reltablespace,
 							  &spc_random_page_cost,
 							  &spc_seq_page_cost);
+    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fprintf(fp, "tuples_fetched=%f, spc_random_page_cost=%f, spc_seq_page_cost=%f.\n",
+            tuples_fetched, spc_random_page_cost, spc_seq_page_cost);
+    fclose(fp);
+
 
 	/*----------
 	 * Estimate number of main-table pages fetched, and compute I/O cost.
@@ -638,6 +652,9 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 	 * that this query will fetch; but it's not clear how to do better.
 	 *----------
 	 */
+    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fprintf(fp, "loop_count=%d.\n", loop_count);
+    fclose(fp);
 	if (loop_count > 1)
 	{
 		/*
@@ -660,6 +677,9 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 
 		max_IO_cost = (pages_fetched * spc_random_page_cost) / loop_count;
 
+        fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+        fprintf(fp, "page_fetched=%f, max_IO_cost=%f.\n", pages_fetched, max_IO_cost);
+        fclose(fp);
 		/*
 		 * In the perfectly correlated case, the number of pages touched by
 		 * each scan is selectivity * table_size, and we can use the Mackert
@@ -681,6 +701,10 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 			pages_fetched = ceil(pages_fetched * (1.0 - baserel->allvisfrac));
 
 		min_IO_cost = (pages_fetched * spc_random_page_cost) / loop_count;
+
+        fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+        fprintf(fp, "page_fetched=%f, min_IO_cost=%f.\n", pages_fetched, min_IO_cost);
+        fclose(fp);
 	}
 	else
 	{
@@ -701,6 +725,10 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 		/* max_IO_cost is for the perfectly uncorrelated case (csquared=0) */
 		max_IO_cost = pages_fetched * spc_random_page_cost;
 
+        fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+        fprintf(fp, "page_fetched=%f, max_IO_cost=%f.\n", pages_fetched, max_IO_cost);
+        fclose(fp);
+
 		/* min_IO_cost is for the perfectly correlated case (csquared=1) */
 		pages_fetched = ceil(indexSelectivity * (double) baserel->pages);
 
@@ -715,6 +743,10 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 		}
 		else
 			min_IO_cost = 0;
+
+        fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+        fprintf(fp, "page_fetched=%f, min_IO_cost=%f.\n", pages_fetched, min_IO_cost);
+        fclose(fp);
 	}
 
 	if (partial_path)
@@ -757,6 +789,10 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 
 	run_cost += max_IO_cost + csquared * (min_IO_cost - max_IO_cost);
 
+    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fprintf(fp, "csquared=%f, run_cost=%f.\n", csquared, run_cost);
+    fclose(fp);
+
 	/*
 	 * Estimate CPU costs per tuple.
 	 *
@@ -770,9 +806,18 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 
 	cpu_run_cost += cpu_per_tuple * tuples_fetched;
 
+    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fprintf(fp, "startup_cost=%f, cpu_per_tuple=%f, tuples_fetched=%d, cpu_run_cost=%f.\n", startup_cost, cpu_per_tuple,
+            tuples_fetched, cpu_run_cost);
+    fclose(fp);
+
 	/* tlist eval costs are paid per output row, not per tuple scanned */
 	startup_cost += path->path.pathtarget->cost.startup;
 	cpu_run_cost += path->path.pathtarget->cost.per_tuple * path->path.rows;
+
+    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fprintf(fp, "startup_cost=%f, cpu_run_cost=%f.\n", startup_cost, cpu_run_cost);
+    fclose(fp);
 
 	/* Adjust costing for parallelism, if used. */
 	if (path->path.parallel_workers > 0)
@@ -784,6 +829,10 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 		/* The CPU cost is divided among all the workers. */
 		cpu_run_cost /= parallel_divisor;
 	}
+
+    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fprintf(fp, "startup_cost=%f, cpu_run_cost=%f.\n", startup_cost, cpu_run_cost);
+    fclose(fp);
 
 	run_cost += cpu_run_cost;
 
