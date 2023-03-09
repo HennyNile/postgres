@@ -7,8 +7,8 @@ def plot_cost_running_time(cost_list, running_time_list, title, output_filepath)
     plt.title(title)
     plt.xlabel('Cost')
     plt.ylabel('Running time / ms')
-    plt.show()
     plt.savefig(output_filepath)
+    plt.show()
 
 
 if __name__ == '__main__':
