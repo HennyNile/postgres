@@ -545,7 +545,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 	double		index_pages;
 
     FILE* fp;
-    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fp = fopen("/tmp/pg_log.txt", "a+");
     fprintf(fp, "\nLiqilong: Cost Model in IndexScan Operator\nLocation: cost_index\n");
     fclose(fp);
 
@@ -595,7 +595,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 				   &indexStartupCost, &indexTotalCost,
 				   &indexSelectivity, &indexCorrelation,
 				   &index_pages);
-    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fp = fopen("/tmp/pg_log.txt", "a+");
     fprintf(fp, "indexStartUpCost=%f, indexTotalCost=%f, indexSelectivity=%f, indexCorrelation=%f, index_pages=%f.\n",
             indexStartupCost, indexTotalCost, indexSelectivity, indexCorrelation, index_pages);
     fclose(fp);
@@ -619,7 +619,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 	get_tablespace_page_costs(baserel->reltablespace,
 							  &spc_random_page_cost,
 							  &spc_seq_page_cost);
-    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fp = fopen("/tmp/pg_log.txt", "a+");
     fprintf(fp, "tuples_fetched=%f, spc_random_page_cost=%f, spc_seq_page_cost=%f.\n",
             tuples_fetched, spc_random_page_cost, spc_seq_page_cost);
     fclose(fp);
@@ -652,7 +652,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 	 * that this query will fetch; but it's not clear how to do better.
 	 *----------
 	 */
-    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fp = fopen("/tmp/pg_log.txt", "a+");
     fprintf(fp, "loop_count=%d.\n", loop_count);
     fclose(fp);
 	if (loop_count > 1)
@@ -677,7 +677,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 
 		max_IO_cost = (pages_fetched * spc_random_page_cost) / loop_count;
 
-        fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+        fp = fopen("/tmp/pg_log.txt", "a+");
         fprintf(fp, "page_fetched=%f, max_IO_cost=%f.\n", pages_fetched, max_IO_cost);
         fclose(fp);
 		/*
@@ -702,7 +702,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 
 		min_IO_cost = (pages_fetched * spc_random_page_cost) / loop_count;
 
-        fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+        fp = fopen("/tmp/pg_log.txt", "a+");
         fprintf(fp, "page_fetched=%f, min_IO_cost=%f.\n", pages_fetched, min_IO_cost);
         fclose(fp);
 	}
@@ -725,7 +725,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 		/* max_IO_cost is for the perfectly uncorrelated case (csquared=0) */
 		max_IO_cost = pages_fetched * spc_random_page_cost;
 
-        fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+        fp = fopen("/tmp/pg_log.txt", "a+");
         fprintf(fp, "page_fetched=%f, max_IO_cost=%f.\n", pages_fetched, max_IO_cost);
         fclose(fp);
 
@@ -744,7 +744,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 		else
 			min_IO_cost = 0;
 
-        fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+        fp = fopen("/tmp/pg_log.txt", "a+");
         fprintf(fp, "page_fetched=%f, min_IO_cost=%f.\n", pages_fetched, min_IO_cost);
         fclose(fp);
 	}
@@ -789,7 +789,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 
 	run_cost += max_IO_cost + csquared * (min_IO_cost - max_IO_cost);
 
-    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fp = fopen("/tmp/pg_log.txt", "a+");
     fprintf(fp, "csquared=%f, run_cost=%f.\n", csquared, run_cost);
     fclose(fp);
 
@@ -806,7 +806,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 
 	cpu_run_cost += cpu_per_tuple * tuples_fetched;
 
-    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fp = fopen("/tmp/pg_log.txt", "a+");
     fprintf(fp, "startup_cost=%f, cpu_per_tuple=%f, tuples_fetched=%d, cpu_run_cost=%f.\n", startup_cost, cpu_per_tuple,
             tuples_fetched, cpu_run_cost);
     fclose(fp);
@@ -815,7 +815,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 	startup_cost += path->path.pathtarget->cost.startup;
 	cpu_run_cost += path->path.pathtarget->cost.per_tuple * path->path.rows;
 
-    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fp = fopen("/tmp/pg_log.txt", "a+");
     fprintf(fp, "startup_cost=%f, cpu_run_cost=%f.\n", startup_cost, cpu_run_cost);
     fclose(fp);
 
@@ -830,7 +830,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 		cpu_run_cost /= parallel_divisor;
 	}
 
-    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fp = fopen("/tmp/pg_log.txt", "a+");
     fprintf(fp, "startup_cost=%f, cpu_run_cost=%f.\n", startup_cost, cpu_run_cost);
     fclose(fp);
 
@@ -5026,7 +5026,7 @@ set_baserel_size_estimates(PlannerInfo *root, RelOptInfo *rel)
 	Assert(rel->relid > 0);
 
     FILE * fp;
-    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fp = fopen("/tmp/pg_log.txt", "a+");
     fprintf(fp, "\nLiqilong: Cardinality Estimation in Scan Operator\nLocation: set_baserel_size_estimates\n");
     fprintf(fp, "This relation has %d clauses.\n", list_length(rel->baserestrictinfo));
     fprintf(fp, "Initial row number is %f.\n", rel->tuples);
@@ -5042,7 +5042,7 @@ set_baserel_size_estimates(PlannerInfo *root, RelOptInfo *rel)
 //        fprintf(fp, "relid %d = %ld\n", wordnum, w);
 //    }
 
-    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fp = fopen("/tmp/pg_log.txt", "a+");
 //    if((int)list_length(rel->baserestrictinfo) == 1) {
 //        fprintf(fp, "start print clause\n");
 //        ListCell *arg;
@@ -5157,7 +5157,7 @@ set_joinrel_size_estimates(PlannerInfo *root, RelOptInfo *rel,
 						   List *restrictlist)
 {
     FILE* fp;
-    fp = fopen("/home/postgres_15_sc/pg_log.txt", "a+");
+    fp = fopen("/tmp/pg_log.txt", "a+");
     fprintf(fp, "\nLiqilong: Cardinality Estimation in Join Operator\nLocation: set_joinrel_size_estimates\n");
     fprintf(fp, "Outer_rel's cardinality is %f.\n", outer_rel->rows);
     fprintf(fp, "Inner_rel's cardinality is %f.\n", inner_rel->rows);
