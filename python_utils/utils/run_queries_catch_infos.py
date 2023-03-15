@@ -1,8 +1,9 @@
 import subprocess
 
+from tqdm import tqdm
+
 from .Query import Query, get_table_encode_map
 from .generate_template_code import generate_c_code
-from .load_data import load_JOB
 
 # vm configuration
 db_user = 'postgres_15_sc'
@@ -18,13 +19,18 @@ default_command_head = str.format('/usr/local/pgsql/bin/psql -U {} -p {} -d {}',
 #                        + ' -c "{}"'
 
 
-def modify_pg_conf_parameters(enable_truth_card=False, benchmark=0, query_order=0):
+def modify_pg_conf_parameters(enable_truth_card=False, benchmark=0, query_order=0, max_parallel_workers_per_gather=0):
     command_head = default_command_head
 
     # modify enable_truth_card
     cmd = 'alter system set enable_truth_card=false;'
     if enable_truth_card:
         cmd = 'alter system set enable_truth_card=true;'
+    subp = subprocess.Popen([command_head.format(cmd)], shell=True, stdout=subprocess.PIPE)
+    subp.communicate()
+
+    # modify max_parallel_workers_per_gather
+    cmd = 'alter system set max_parallel_workers_per_gather={};'.format(max_parallel_workers_per_gather)
     subp = subprocess.Popen([command_head.format(cmd)], shell=True, stdout=subprocess.PIPE)
     subp.communicate()
 
@@ -45,21 +51,23 @@ def modify_pg_conf_parameters(enable_truth_card=False, benchmark=0, query_order=
     subp.communicate()
 
 
-def run_cat_cost_running_time(queries, run_times, start_query_order, end_query_order, store_filepath,
-                              enable_truth_card=False, benchmark=0, enable_print_plan=False):
+def run_cat_cost_runtime(queries, run_times, start_query_order, end_query_order, store_filepath,
+                         enable_truth_card=False, benchmark=0, enable_print_plan=False,
+                         max_parallel_workers_per_gather=0):
     command_head = default_command_head
-    cost_list, running_time_list = [], []
+    cost_list, runtime_list = [], []
     query_order = start_query_order
     store_file = open(store_filepath, 'a+')
     for i in range(start_query_order, end_query_order):
-        modify_pg_conf_parameters(enable_truth_card=enable_truth_card, benchmark=benchmark, query_order=i)
+        modify_pg_conf_parameters(enable_truth_card=enable_truth_card, benchmark=benchmark, query_order=i,
+                                  max_parallel_workers_per_gather=max_parallel_workers_per_gather)
         query_order += 1
         query = queries[i]
         print('[INFO] query ' + str(i))
         # print('[INFO] query ' + str(i) + ': ' + query)
         # run query and catch running time
         command = str.format(command_head, "explain analyze " + query)
-        running_time = 0
+        runtime = 0
         cost = 0
         for _ in range(run_times):
             subp = subprocess.Popen([command], shell=True, stdout=subprocess.PIPE)
@@ -73,24 +81,26 @@ def run_cat_cost_running_time(queries, run_times, start_query_order, end_query_o
                 out_str_lines_len - 4]
             planning_time = float(planning_time_str.split(':')[1].strip().split(' ')[0])
             execution_time = float(execution_time_str.split(':')[1].strip().split(' ')[0])
-            running_time += planning_time + execution_time
+            runtime += planning_time + execution_time
             # extract cost info
             cost_line_parts = out_str_lines[2].strip().split(' ')
             for part in cost_line_parts:
                 if 'cost' in part:
                     cost = float(part.strip().split('..')[1])
-        print('[INFO] query ' + str(i) + ': ' + str(running_time / run_times) + 'ms')
-        store_file.write(str(i) + ', ' + str(cost) + ', ' + str(running_time / run_times) + '\n')
+        print('[INFO] query ' + str(i) + ': ' + str(runtime / run_times) + 'ms')
+        store_file.write(str(i) + ', ' + str(cost) + ', ' + str(runtime / run_times) + '\n')
         store_file.flush()
         cost_list.append(cost)
-        running_time_list.append(running_time / run_times)
-    return cost_list, running_time_list
+        runtime_list.append(runtime / run_times)
+    return cost_list, runtime_list
 
 
 def run_cat_card(queries):
     command_head = default_command_head
     result_cards = []
-    for query in queries:
+    for i in tqdm(range(len(queries))):
+        query = queries[i]
+        # for query in queries:
         command = str.format(command_head, query)
         subp = subprocess.Popen([command], shell=True, stdout=subprocess.PIPE)
         (out, err) = subp.communicate()
@@ -151,4 +161,3 @@ def run_cat_subquery_card(query_paths, queries, start_query_order, end_query_ord
     # 4. generate corresponding c code
     c_code = generate_c_code(truth_cardinality, queries, start_query_order,
                              generated_code_filepath=generated_code_filepath)
-    pass

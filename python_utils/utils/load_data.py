@@ -30,14 +30,14 @@ def load_JOB_light():
     return query_paths, queries
 
 
-def load_cost_running_time(filepath):
-    cost_list, running_time_list = [], []
+def load_cost_runtime(filepath):
+    cost_list, runtime_list = [], []
     with open(filepath, 'r+') as f:
         lines = f.readlines()
         for line in lines:
             parts = line.split(',')
             cost = float(parts[1].strip())
-            running_time = float(parts[2].strip())
+            runtime = float(parts[2].strip())
             cost_list.append(cost)
-            running_time_list.append(running_time)
-    return cost_list, running_time_list
+            runtime_list.append(runtime)
+    return cost_list, runtime_list
