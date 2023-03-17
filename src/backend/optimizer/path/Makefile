@@ -22,6 +22,7 @@ OBJS = \
 	joinrels.o \
 	pathkeys.o \
 	tidpath.o \
-	cardprovider.o
+	cardprovider.o \
+	jobcardprovider.o
 
 include $(top_srcdir)/src/backend/common.mk
