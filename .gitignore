@@ -44,4 +44,5 @@ lib*.pc
 /Release/
 /tmp_install/
 .idea/
+python_utils/
 

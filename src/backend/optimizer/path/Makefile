@@ -24,6 +24,9 @@ OBJS = \
 	tidpath.o \
 	cardprovider.o \
 	jobcardprovider.o \
-	tpchcardprovider.o
+	tpchcardprovider.o \
+	costmodel.o \
+	bench1cardprovider.o \
+	bench2cardprovider.o
 
 include $(top_srcdir)/src/backend/common.mk

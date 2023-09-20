@@ -94,6 +94,7 @@
 #include "optimizer/planmain.h"
 #include "optimizer/restrictinfo.h"
 #include "optimizer/cardprovider.h"
+#include "optimizer/costmodel.h"
 #include "parser/parsetree.h"
 #include "utils/lsyscache.h"
 #include "utils/selfuncs.h"
@@ -255,6 +256,14 @@ void
 cost_seqscan(Path *path, PlannerInfo *root,
 			 RelOptInfo *baserel, ParamPathInfo *param_info)
 {
+    // invoke simple customized cost model
+//    double parallel_divisor = 0;
+//    if (path->parallel_workers > 0){
+//        parallel_divisor = get_parallel_divisor(path);
+//    }
+//    simple_cost_model_cost_seqscan(path, root, baserel, param_info, parallel_divisor);
+//    return;
+
 	Cost		startup_cost = 0;
 	Cost		cpu_run_cost;
 	Cost		disk_run_cost;
@@ -520,6 +529,14 @@ void
 cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 		   bool partial_path)
 {
+    // invoke simple customized cost model
+//    double parallel_divisor = 0;
+//    if (path->path.parallel_workers > 0){
+//        parallel_divisor = get_parallel_divisor(&path->path);
+//    }
+//    simple_cost_model_cost_index(path, root, loop_count, partial_path, parallel_divisor);
+//    return;
+
 	IndexOptInfo *index = path->indexinfo;
 	RelOptInfo *baserel = index->rel;
 	bool		indexonly = (path->path.pathtype == T_IndexOnlyScan);
@@ -653,7 +670,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 	 *----------
 	 */
     fp = fopen("/tmp/pg_log.txt", "a+");
-    fprintf(fp, "loop_count=%d.\n", loop_count);
+    fprintf(fp, "loop_count=%f.\n", loop_count);
     fclose(fp);
 	if (loop_count > 1)
 	{
@@ -807,7 +824,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 	cpu_run_cost += cpu_per_tuple * tuples_fetched;
 
     fp = fopen("/tmp/pg_log.txt", "a+");
-    fprintf(fp, "startup_cost=%f, cpu_per_tuple=%f, tuples_fetched=%d, cpu_run_cost=%f.\n", startup_cost, cpu_per_tuple,
+    fprintf(fp, "startup_cost=%f, cpu_per_tuple=%f, tuples_fetched=%f, cpu_run_cost=%f.\n", startup_cost, cpu_per_tuple,
             tuples_fetched, cpu_run_cost);
     fclose(fp);
 
@@ -5168,9 +5185,15 @@ set_joinrel_size_estimates(PlannerInfo *root, RelOptInfo *rel,
     for(wordnum = 0; wordnum < outer_relids_nwords; wordnum++)
     {
         bitmapword w = outer_relids->words[wordnum];
-        fprintf(fp, "relid %d = %ld\n", wordnum, w);
+        fprintf(fp, "outer_relid %d = %ld\n", wordnum, w);
     }
-
+    Relids inner_relids = inner_rel->relids;
+    int inner_relids_nwords = inner_relids->nwords;
+    for(wordnum = 0; wordnum < inner_relids_nwords; wordnum++)
+    {
+        bitmapword w = inner_relids->words[wordnum];
+        fprintf(fp, "inner_relid %d = %ld\n", wordnum, w);
+    }
 
     double nrows;
 
