@@ -2083,14 +2083,30 @@ hash_inner_and_outer(PlannerInfo *root,
 			ListCell   *lc1;
 			ListCell   *lc2;
 
-			if (cheapest_startup_outer != NULL)
-				try_hashjoin_path(root,
-								  joinrel,
-								  cheapest_startup_outer,
-								  cheapest_total_inner,
-								  hashclauses,
-								  jointype,
-								  extra);
+			// lql: add all potential hashclauses to the pathlist
+			ListCell *p1, *p2;
+			foreach (p1, outerrel->pathlist)
+				foreach (p2, innerrel->pathlist)
+				{
+					Path *outerpath = (Path *) lfirst(p1);
+					Path *innerpath = (Path *) lfirst(p2);
+					try_hashjoin_path(root,
+									  joinrel,
+									  outerpath,
+									  innerpath,
+									  hashclauses,
+									  jointype,
+									  extra);
+				}
+
+			// if (cheapest_startup_outer != NULL)
+			// 	try_hashjoin_path(root,
+			// 					  joinrel,
+			// 					  cheapest_startup_outer,
+			// 					  cheapest_total_inner,
+			// 					  hashclauses,
+			// 					  jointype,
+			// 					  extra);
 
 			foreach(lc1, outerrel->cheapest_parameterized_paths)
 			{

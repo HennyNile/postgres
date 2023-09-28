@@ -454,6 +454,12 @@ add_path(RelOptInfo *parent_rel, Path *new_path)
 		costcmp = compare_path_costs_fuzzily(new_path, old_path,
 											 STD_FUZZ_FACTOR);
 
+		// lql: enable to add all potential paths
+		bool lcm_enabled = true;
+		if (lcm_enabled) {
+			costcmp = COSTS_DIFFERENT;
+		}
+
 		/*
 		 * If the two paths compare differently for startup and total cost,
 		 * then we want to keep both, and we can skip comparing pathkeys and
@@ -654,6 +660,12 @@ add_path_precheck(RelOptInfo *parent_rel,
 
 	/* Decide whether new path's startup cost is interesting */
 	consider_startup = required_outer ? parent_rel->consider_param_startup : parent_rel->consider_startup;
+
+	// lql: add all potential paths
+	bool lcm_enabled = true;
+	if (lcm_enabled) {
+		return true;
+	}
 
 	foreach(p1, parent_rel->pathlist)
 	{

@@ -30,6 +30,7 @@
 #include "optimizer/tlist.h"
 #include "utils/hsearch.h"
 #include "utils/lsyscache.h"
+#include <stdio.h>
 
 
 typedef struct JoinHashEntry
@@ -1218,14 +1219,23 @@ fetch_upper_rel(PlannerInfo *root, UpperRelationKind kind, Relids relids)
 	 * working well, we can improve it.  No code outside this function should
 	 * assume anything about how to find a particular upperrel.
 	 */
-
+	
 	/* If we already made this upperrel for the query, return it */
 	foreach(lc, root->upper_rels[kind])
 	{
 		upperrel = (RelOptInfo *) lfirst(lc);
 
-		if (bms_equal(upperrel->relids, relids))
-			return upperrel;
+		if (bms_equal(upperrel->relids, relids)) {
+			// lql: check the number of candidate complete plans
+			// open a output file
+			FILE *fp;
+			fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+			fprintf(fp, "UpperRelationKind: %d\n", (int)kind);
+			fprintf(fp, "Number of candidate complete plans: %d\n", upperrel->pathlist->length);
+			fprintf(fp, "Max Number of candidate complete plans: %d\n", upperrel->pathlist->max_length);
+			fclose(fp);	
+		}
+		return upperrel;
 	}
 
 	upperrel = makeNode(RelOptInfo);

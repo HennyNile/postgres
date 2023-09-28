@@ -2987,30 +2987,47 @@ generate_gather_paths(PlannerInfo *root, RelOptInfo *rel, bool override_rows)
 	 * path of interest: the cheapest one.  That will be the one at the front
 	 * of partial_pathlist because of the way add_partial_path works.
 	 */
-	cheapest_partial_path = linitial(rel->partial_pathlist);
-	rows =
-		cheapest_partial_path->rows * cheapest_partial_path->parallel_workers;
-	simple_gather_path = (Path *)
-		create_gather_path(root, rel, cheapest_partial_path, rel->reltarget,
-						   NULL, rowsp);
-	add_path(rel, simple_gather_path);
-
-	/*
-	 * For each useful ordering, we can consider an order-preserving Gather
-	 * Merge.
-	 */
-	foreach(lc, rel->partial_pathlist)
+	// lql: add more potential paths
+	bool lcm_enabled = true;
+	if (lcm_enabled)
 	{
-		Path	   *subpath = (Path *) lfirst(lc);
-		GatherMergePath *path;
+		foreach(lc, rel->partial_pathlist)
+		{
+			Path	   *subpath = (Path *) lfirst(lc);
+			GatherMergePath *path;
 
-		if (subpath->pathkeys == NIL)
-			continue;
+			rows = subpath->rows * subpath->parallel_workers;
+			path = create_gather_merge_path(root, rel, subpath, rel->reltarget,
+											subpath->pathkeys, NULL, rowsp);
+			add_path(rel, &path->path);
+		}
+	}
+	else
+	{
+		cheapest_partial_path = linitial(rel->partial_pathlist);
+		rows = cheapest_partial_path->rows * cheapest_partial_path->parallel_workers;
+		simple_gather_path = (Path *)
+			create_gather_path(root, rel, cheapest_partial_path, rel->reltarget,
+							   NULL, rowsp);
+		add_path(rel, simple_gather_path);
 
-		rows = subpath->rows * subpath->parallel_workers;
-		path = create_gather_merge_path(root, rel, subpath, rel->reltarget,
-										subpath->pathkeys, NULL, rowsp);
-		add_path(rel, &path->path);
+		/*
+		 * For each useful ordering, we can consider an order-preserving Gather
+		 * Merge.
+		 */
+		foreach(lc, rel->partial_pathlist)
+		{
+			Path	   *subpath = (Path *) lfirst(lc);
+			GatherMergePath *path;
+
+			if (subpath->pathkeys == NIL)
+				continue;
+
+			rows = subpath->rows * subpath->parallel_workers;
+			path = create_gather_merge_path(root, rel, subpath, rel->reltarget,
+											subpath->pathkeys, NULL, rowsp);
+			add_path(rel, &path->path);
+		}
 	}
 }
 

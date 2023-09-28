@@ -64,6 +64,7 @@
 #include "utils/rel.h"
 #include "utils/selfuncs.h"
 #include "utils/syscache.h"
+#include "lcm/lcm_extension.h"
 
 /* GUC parameters */
 double		cursor_tuple_fraction = DEFAULT_CURSOR_TUPLE_FRACTION;
@@ -406,6 +407,192 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 	root = subquery_planner(glob, parse, NULL,
 							false, tuple_fraction);
 
+	// lql: generate plans for all potential paths
+	bool lcm_enabled = true;
+	ListCell *p1;
+	if(lcm_enabled) 
+	{
+		final_rel = fetch_upper_rel(root, UPPERREL_FINAL, NULL);
+		PlannedStmt **results = (PlannedStmt**)malloc(sizeof(PlannedStmt*) * list_length(final_rel->pathlist));
+		int idx = 0;
+		foreach (p1, final_rel->pathlist)
+		{
+
+			Path * current_path = (Path *) lfirst(p1);
+			
+			top_plan = create_plan(root, current_path);
+
+			/*
+			* If creating a plan for a scrollable cursor, make sure it can run
+			* backwards on demand.  Add a Material node at the top at need.
+			*/
+			if (cursorOptions & CURSOR_OPT_SCROLL)
+			{
+				if (!ExecSupportsBackwardScan(top_plan))
+					top_plan = materialize_finished_plan(top_plan);
+			}
+
+			/*
+			* Optionally add a Gather node for testing purposes, provided this is
+			* actually a safe thing to do.
+			*/
+			if (force_parallel_mode != FORCE_PARALLEL_OFF && top_plan->parallel_safe)
+			{
+				Gather	   *gather = makeNode(Gather);
+
+				/*
+				* If there are any initPlans attached to the formerly-top plan node,
+				* move them up to the Gather node; same as we do for Material node in
+				* materialize_finished_plan.
+				*/
+				gather->plan.initPlan = top_plan->initPlan;
+				top_plan->initPlan = NIL;
+
+				gather->plan.targetlist = top_plan->targetlist;
+				gather->plan.qual = NIL;
+				gather->plan.lefttree = top_plan;
+				gather->plan.righttree = NULL;
+				gather->num_workers = 1;
+				gather->single_copy = true;
+				gather->invisible = (force_parallel_mode == FORCE_PARALLEL_REGRESS);
+
+				/*
+				* Since this Gather has no parallel-aware descendants to signal to,
+				* we don't need a rescan Param.
+				*/
+				gather->rescan_param = -1;
+
+				/*
+				* Ideally we'd use cost_gather here, but setting up dummy path data
+				* to satisfy it doesn't seem much cleaner than knowing what it does.
+				*/
+				gather->plan.startup_cost = top_plan->startup_cost +
+					parallel_setup_cost;
+				gather->plan.total_cost = top_plan->total_cost +
+					parallel_setup_cost + parallel_tuple_cost * top_plan->plan_rows;
+				gather->plan.plan_rows = top_plan->plan_rows;
+				gather->plan.plan_width = top_plan->plan_width;
+				gather->plan.parallel_aware = false;
+				gather->plan.parallel_safe = false;
+
+				/* use parallel mode for parallel plans. */
+				root->glob->parallelModeNeeded = true;
+
+				top_plan = &gather->plan;
+			}
+
+			/*
+			* If any Params were generated, run through the plan tree and compute
+			* each plan node's extParam/allParam sets.  Ideally we'd merge this into
+			* set_plan_references' tree traversal, but for now it has to be separate
+			* because we need to visit subplans before not after main plan.
+			*/
+			if (glob->paramExecTypes != NIL)
+			{
+				Assert(list_length(glob->subplans) == list_length(glob->subroots));
+				forboth(lp, glob->subplans, lr, glob->subroots)
+				{
+					Plan	   *subplan = (Plan *) lfirst(lp);
+					PlannerInfo *subroot = lfirst_node(PlannerInfo, lr);
+
+					SS_finalize_plan(subroot, subplan);
+				}
+				SS_finalize_plan(root, top_plan);
+			}
+
+			/* final cleanup of the plan */
+			Assert(glob->finalrtable == NIL);
+			Assert(glob->finalrowmarks == NIL);
+			Assert(glob->resultRelations == NIL);
+			Assert(glob->appendRelations == NIL);
+			top_plan = set_plan_references(root, top_plan);
+			/* ... and the subplans (both regular subplans and initplans) */
+			Assert(list_length(glob->subplans) == list_length(glob->subroots));
+			forboth(lp, glob->subplans, lr, glob->subroots)
+			{
+				Plan	   *subplan = (Plan *) lfirst(lp);
+				PlannerInfo *subroot = lfirst_node(PlannerInfo, lr);
+
+				lfirst(lp) = set_plan_references(subroot, subplan);
+			}
+
+			/* build the PlannedStmt result */
+			result = makeNode(PlannedStmt);
+
+			result->commandType = parse->commandType;
+			result->queryId = parse->queryId;
+			result->hasReturning = (parse->returningList != NIL);
+			result->hasModifyingCTE = parse->hasModifyingCTE;
+			result->canSetTag = parse->canSetTag;
+			result->transientPlan = glob->transientPlan;
+			result->dependsOnRole = glob->dependsOnRole;
+			result->parallelModeNeeded = glob->parallelModeNeeded;
+			result->planTree = top_plan;
+			result->rtable = glob->finalrtable;
+			result->resultRelations = glob->resultRelations;
+			result->appendRelations = glob->appendRelations;
+			result->subplans = glob->subplans;
+			result->rewindPlanIDs = glob->rewindPlanIDs;
+			result->rowMarks = glob->finalrowmarks;
+			result->relationOids = glob->relationOids;
+			result->invalItems = glob->invalItems;
+			result->paramExecTypes = glob->paramExecTypes;
+			/* utilityStmt should be null, but we might as well copy it */
+			result->utilityStmt = parse->utilityStmt;
+			result->stmt_location = parse->stmt_location;
+			result->stmt_len = parse->stmt_len;
+
+			result->jitFlags = PGJIT_NONE;
+			if (jit_enabled && jit_above_cost >= 0 &&
+				top_plan->total_cost > jit_above_cost)
+			{
+				result->jitFlags |= PGJIT_PERFORM;
+
+				/*
+				* Decide how much effort should be put into generating better code.
+				*/
+				if (jit_optimize_above_cost >= 0 &&
+					top_plan->total_cost > jit_optimize_above_cost)
+					result->jitFlags |= PGJIT_OPT3;
+				if (jit_inline_above_cost >= 0 &&
+					top_plan->total_cost > jit_inline_above_cost)
+					result->jitFlags |= PGJIT_INLINE;
+
+				/*
+				* Decide which operations should be JITed.
+				*/
+				if (jit_expressions)
+					result->jitFlags |= PGJIT_EXPR;
+				if (jit_tuple_deforming)
+					result->jitFlags |= PGJIT_DEFORM;
+			}
+
+			if (glob->partition_directory != NULL)
+				DestroyPartitionDirectory(glob->partition_directory);
+			
+			// assgin result
+			results[idx++] = result;
+		}
+		FILE *fp;
+		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+		fprintf(fp, "There are %d final plans.\n", (int)idx);
+		fclose(fp);	
+		
+		// the selected_idx indicates the index of the best plan for LCM. 
+		int selected_idx = lcm_select_best_plan(results, idx); 
+
+		// free the memory of sub-optimal plans
+		for(int i=0; i<idx; i++)
+		{
+			if(selected_idx==i)
+			{
+				continue;
+			}
+			pfree(results[i]);
+		}
+		return results[selected_idx];
+	} 
+	
 	/* Select best Path and turn it into a Plan */
 	final_rel = fetch_upper_rel(root, UPPERREL_FINAL, NULL);
 	best_path = get_cheapest_fractional_path(final_rel, tuple_fraction);
@@ -423,18 +610,18 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 	}
 
 	/*
-	 * Optionally add a Gather node for testing purposes, provided this is
-	 * actually a safe thing to do.
-	 */
+	* Optionally add a Gather node for testing purposes, provided this is
+	* actually a safe thing to do.
+	*/
 	if (force_parallel_mode != FORCE_PARALLEL_OFF && top_plan->parallel_safe)
 	{
 		Gather	   *gather = makeNode(Gather);
 
 		/*
-		 * If there are any initPlans attached to the formerly-top plan node,
-		 * move them up to the Gather node; same as we do for Material node in
-		 * materialize_finished_plan.
-		 */
+		* If there are any initPlans attached to the formerly-top plan node,
+		* move them up to the Gather node; same as we do for Material node in
+		* materialize_finished_plan.
+		*/
 		gather->plan.initPlan = top_plan->initPlan;
 		top_plan->initPlan = NIL;
 
@@ -447,15 +634,15 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 		gather->invisible = (force_parallel_mode == FORCE_PARALLEL_REGRESS);
 
 		/*
-		 * Since this Gather has no parallel-aware descendants to signal to,
-		 * we don't need a rescan Param.
-		 */
+		* Since this Gather has no parallel-aware descendants to signal to,
+		* we don't need a rescan Param.
+		*/
 		gather->rescan_param = -1;
 
 		/*
-		 * Ideally we'd use cost_gather here, but setting up dummy path data
-		 * to satisfy it doesn't seem much cleaner than knowing what it does.
-		 */
+		* Ideally we'd use cost_gather here, but setting up dummy path data
+		* to satisfy it doesn't seem much cleaner than knowing what it does.
+		*/
 		gather->plan.startup_cost = top_plan->startup_cost +
 			parallel_setup_cost;
 		gather->plan.total_cost = top_plan->total_cost +
@@ -472,11 +659,11 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 	}
 
 	/*
-	 * If any Params were generated, run through the plan tree and compute
-	 * each plan node's extParam/allParam sets.  Ideally we'd merge this into
-	 * set_plan_references' tree traversal, but for now it has to be separate
-	 * because we need to visit subplans before not after main plan.
-	 */
+	* If any Params were generated, run through the plan tree and compute
+	* each plan node's extParam/allParam sets.  Ideally we'd merge this into
+	* set_plan_references' tree traversal, but for now it has to be separate
+	* because we need to visit subplans before not after main plan.
+	*/
 	if (glob->paramExecTypes != NIL)
 	{
 		Assert(list_length(glob->subplans) == list_length(glob->subroots));
@@ -539,8 +726,8 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 		result->jitFlags |= PGJIT_PERFORM;
 
 		/*
-		 * Decide how much effort should be put into generating better code.
-		 */
+		* Decide how much effort should be put into generating better code.
+		*/
 		if (jit_optimize_above_cost >= 0 &&
 			top_plan->total_cost > jit_optimize_above_cost)
 			result->jitFlags |= PGJIT_OPT3;
@@ -549,8 +736,8 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 			result->jitFlags |= PGJIT_INLINE;
 
 		/*
-		 * Decide which operations should be JITed.
-		 */
+		* Decide which operations should be JITed.
+		*/
 		if (jit_expressions)
 			result->jitFlags |= PGJIT_EXPR;
 		if (jit_tuple_deforming)
@@ -6240,15 +6427,44 @@ add_paths_to_grouping_rel(PlannerInfo *root, RelOptInfo *input_rel,
 													path->pathkeys,
 													&presorted_keys);
 
-			if (path == cheapest_path || is_sorted)
-			{
-				/* Sort the cheapest-total path if it isn't already sorted */
+			// lql: add all potential paths
+			bool lcm_enabled = true;
+			if (lcm_enabled) {
+				/* Sort the the path if it isn't already sorted */
 				if (!is_sorted)
 					path = (Path *) create_sort_path(root,
-													 grouped_rel,
-													 path,
-													 root->group_pathkeys,
-													 -1.0);
+													grouped_rel,
+													path,
+													root->group_pathkeys,
+													-1.0);
+			}
+			else
+			{
+				if (path == cheapest_path || is_sorted)
+				{
+					/* Sort the cheapest-total path if it isn't already sorted */
+					if (!is_sorted)
+						path = (Path *) create_sort_path(root,
+														grouped_rel,
+														path,
+														root->group_pathkeys,
+														-1.0);
+				}
+				else
+				{
+					continue; // follow the initial logic
+				}
+			}
+
+			// if (path == cheapest_path || is_sorted)
+			// {
+			// 	/* Sort the cheapest-total path if it isn't already sorted */
+			// 	if (!is_sorted)
+			// 		path = (Path *) create_sort_path(root,
+			// 										grouped_rel,
+			// 										path,
+			// 										root->group_pathkeys,
+			// 										-1.0);
 
 				/* Now decide what to stick atop it */
 				if (parse->groupingSets)
@@ -6294,7 +6510,7 @@ add_paths_to_grouping_rel(PlannerInfo *root, RelOptInfo *input_rel,
 					/* Other cases should have been handled above */
 					Assert(false);
 				}
-			}
+			
 
 			/*
 			 * Now we may consider incremental sort on this path, but only
