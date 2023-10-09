@@ -13,6 +13,8 @@ top_builddir = ../../../..
 include $(top_builddir)/src/Makefile.global
 
 OBJS = \
-	lcm_extension.o
+	lcm_extension.o \
+	utils.o \
+	yyjson.o
 
 include $(top_srcdir)/src/backend/common.mk

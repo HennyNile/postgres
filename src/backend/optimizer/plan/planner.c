@@ -415,6 +415,8 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 		final_rel = fetch_upper_rel(root, UPPERREL_FINAL, NULL);
 		PlannedStmt **results = (PlannedStmt**)malloc(sizeof(PlannedStmt*) * list_length(final_rel->pathlist));
 		int idx = 0;
+		int max_path_num = 20;
+		list_truncate(final_rel->pathlist, max_path_num);
 		foreach (p1, final_rel->pathlist)
 		{
 

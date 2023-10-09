@@ -627,6 +627,15 @@ add_path(RelOptInfo *parent_rel, Path *new_path)
 		if (!IsA(new_path, IndexPath))
 			pfree(new_path);
 	}
+
+	// lql: limit the number of feasible paths
+	bool lcm_enabled = true;
+	int max_path_num = 20;
+	if (lcm_enabled) {
+		if (list_length(parent_rel->pathlist) > 100) {
+			parent_rel->pathlist = list_truncate(parent_rel->pathlist, max_path_num);
+		}
+	}
 }
 
 /*

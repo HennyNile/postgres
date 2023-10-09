@@ -2,16 +2,16 @@
 #include "fmgr.h"
 #include "nodes/plannodes.h"
 
-typedef struct LcmPlan
+#ifndef LCM_EXTENSION
+#define LCM_EXTENSION
+
+typedef struct RelatedTable
 {
-	// The original plan from postgres
-	PlannedStmt *plan;
-
-	// Plan info
-	double lantency;
-
-} LcmPlan;
+	List *tables;
+} RelatedTable;
 
 double lcm_cost_estimate(PlannedStmt *plan);
 
 extern int lcm_select_best_plan(PlannedStmt **candidate_plans, int nplans);
+
+#endif 
