@@ -10,8 +10,8 @@ typedef struct RelatedTable
 	List *tables;
 } RelatedTable;
 
-double lcm_cost_estimate(PlannedStmt *plan);
-
 extern int lcm_select_best_plan(PlannedStmt **candidate_plans, int nplans);
+
+extern void lcm_select_nfirst_best_plans(PlannedStmt **candidate_plans, int nplans, int nfirst, int* nfirst_plans_index);
 
 #endif 

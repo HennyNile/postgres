@@ -25,6 +25,12 @@
 #include "optimizer/paths.h"
 #include "optimizer/planmain.h"
 #include "utils/typcache.h"
+#include "nodes/pg_list.h"
+#include "jit/jit.h"
+#include "nodes/nodes.h"
+
+#define LIST_HEADER_OVERHEAD  \
+	((int) ((offsetof(List, initial_elements) - 1) / sizeof(ListCell) + 1))
 
 /* Hook for plugins to get control in add_paths_to_joinrel() */
 set_join_pathlist_hook_type set_join_pathlist_hook = NULL;
@@ -149,6 +155,439 @@ add_paths_to_joinrel(PlannerInfo *root,
 	extra.mergeclause_list = NIL;
 	extra.sjinfo = sjinfo;
 	extra.param_source_rels = NULL;
+
+	// invoke LCM to filter the paths of sub-rel if there are two much paths for a rel
+	bool lcm_enabled = true;
+	if (lcm_enabled)
+	{
+		ListCell *p1, *lp, *lr;
+		Plan	   *top_plan;
+		PlannedStmt *result;
+		bool truncated = false;
+		int outerrel_init_path_num = -1;
+		int innerrel_init_path_num = -1;
+		int max_path_num = 50;
+		int saved_path_num = 1;
+		int cursorOptions = 2048;
+		if(outerrel->pathlist->length > max_path_num)
+		{
+			truncated = true;
+			outerrel_init_path_num = outerrel->pathlist->length;
+			// list_truncate(outerrel->pathlist, 20);
+
+			// generate PlannedStmt for candidate plans
+			PlannedStmt **results = (PlannedStmt**)malloc(sizeof(PlannedStmt*) * list_length(outerrel->pathlist));
+			int idx = 0;
+			foreach (p1, outerrel->pathlist)
+			{
+				Path * current_path = (Path *) lfirst(p1);	
+				top_plan = create_plan(root, current_path);
+
+				/*
+				* If creating a plan for a scrollable cursor, make sure it can run
+				* backwards on demand.  Add a Material node at the top at need.
+				*/
+				if (cursorOptions & CURSOR_OPT_SCROLL)
+				{
+					if (!ExecSupportsBackwardScan(top_plan))
+						top_plan = materialize_finished_plan(top_plan);
+				}
+
+				/*
+				* Optionally add a Gather node for testing purposes, provided this is
+				* actually a safe thing to do.
+				*/
+				if (force_parallel_mode != FORCE_PARALLEL_OFF && top_plan->parallel_safe)
+				{
+					Gather	   *gather = makeNode(Gather);
+
+					/*
+					* If there are any initPlans attached to the formerly-top plan node,
+					* move them up to the Gather node; same as we do for Material node in
+					* materialize_finished_plan.
+					*/
+					gather->plan.initPlan = top_plan->initPlan;
+					top_plan->initPlan = NIL;
+
+					gather->plan.targetlist = top_plan->targetlist;
+					gather->plan.qual = NIL;
+					gather->plan.lefttree = top_plan;
+					gather->plan.righttree = NULL;
+					gather->num_workers = 1;
+					gather->single_copy = true;
+					gather->invisible = (force_parallel_mode == FORCE_PARALLEL_REGRESS);
+
+					/*
+					* Since this Gather has no parallel-aware descendants to signal to,
+					* we don't need a rescan Param.
+					*/
+					gather->rescan_param = -1;
+
+					/*
+					* Ideally we'd use cost_gather here, but setting up dummy path data
+					* to satisfy it doesn't seem much cleaner than knowing what it does.
+					*/
+					gather->plan.startup_cost = top_plan->startup_cost +
+						parallel_setup_cost;
+					gather->plan.total_cost = top_plan->total_cost +
+						parallel_setup_cost + parallel_tuple_cost * top_plan->plan_rows;
+					gather->plan.plan_rows = top_plan->plan_rows;
+					gather->plan.plan_width = top_plan->plan_width;
+					gather->plan.parallel_aware = false;
+					gather->plan.parallel_safe = false;
+
+					/* use parallel mode for parallel plans. */
+					root->glob->parallelModeNeeded = true;
+
+					top_plan = &gather->plan;
+				}
+
+				/*
+				* If any Params were generated, run through the plan tree and compute
+				* each plan node's extParam/allParam sets.  Ideally we'd merge this into
+				* set_plan_references' tree traversal, but for now it has to be separate
+				* because we need to visit subplans before not after main plan.
+				*/
+				if (root->glob->paramExecTypes != NIL)
+				{
+					Assert(list_length(root->glob->subplans) == list_length(root->glob->subroots));
+					forboth(lp, root->glob->subplans, lr, root->glob->subroots)
+					{
+						Plan	   *subplan = (Plan *) lfirst(lp);
+						PlannerInfo *subroot = lfirst_node(PlannerInfo, lr);
+
+						SS_finalize_plan(subroot, subplan);
+					}
+					SS_finalize_plan(root, top_plan);
+				}
+
+					/* final cleanup of the plan */
+				Assert(root->glob->finalrtable == NIL);
+				Assert(root->glob->finalrowmarks == NIL);
+				Assert(root->glob->resultRelations == NIL);
+				Assert(root->glob->appendRelations == NIL);
+				top_plan = set_plan_references(root, top_plan);
+				Assert(list_length(root->glob->subplans) == list_length(root->glob->subroots));
+				forboth(lp, root->glob->subplans, lr, root->glob->subroots)
+				{
+					Plan	   *subplan = (Plan *) lfirst(lp);
+					PlannerInfo *subroot = lfirst_node(PlannerInfo, lr);
+
+					lfirst(lp) = set_plan_references(subroot, subplan);
+				}
+
+				/* build the PlannedStmt result */
+				result = makeNode(PlannedStmt);
+
+				result->commandType = root->parse->commandType;
+				result->queryId = root->parse->queryId;
+				result->hasReturning = (root->parse->returningList != NIL);
+				result->hasModifyingCTE = root->parse->hasModifyingCTE;
+				result->canSetTag = root->parse->canSetTag;
+				result->transientPlan = root->glob->transientPlan;
+				result->dependsOnRole = root->glob->dependsOnRole;
+				result->parallelModeNeeded = root->glob->parallelModeNeeded;
+				result->planTree = top_plan;
+				result->rtable = root->glob->finalrtable;
+				result->resultRelations = root->glob->resultRelations;
+				result->appendRelations = root->glob->appendRelations;
+				result->subplans = root->glob->subplans;
+				result->rewindPlanIDs = root->glob->rewindPlanIDs;
+				result->rowMarks = root->glob->finalrowmarks;
+				result->relationOids = root->glob->relationOids;
+				result->invalItems = root->glob->invalItems;
+				result->paramExecTypes = root->glob->paramExecTypes;
+				/* utilityStmt should be null, but we might as well copy it */
+				result->utilityStmt = root->parse->utilityStmt;
+				result->stmt_location = root->parse->stmt_location;
+				result->stmt_len = root->parse->stmt_len;
+
+				result->jitFlags = PGJIT_NONE;
+				if (jit_enabled && jit_above_cost >= 0 &&
+					top_plan->total_cost > jit_above_cost)
+				{
+					result->jitFlags |= PGJIT_PERFORM;
+
+					/*
+					* Decide how much effort should be put into generating better code.
+					*/
+					if (jit_optimize_above_cost >= 0 &&
+						top_plan->total_cost > jit_optimize_above_cost)
+						result->jitFlags |= PGJIT_OPT3;
+					if (jit_inline_above_cost >= 0 &&
+						top_plan->total_cost > jit_inline_above_cost)
+						result->jitFlags |= PGJIT_INLINE;
+
+					/*
+					* Decide which operations should be JITed.
+					*/
+					if (jit_expressions)
+						result->jitFlags |= PGJIT_EXPR;
+					if (jit_tuple_deforming)
+						result->jitFlags |= PGJIT_DEFORM;
+				}
+
+				if (root->glob->partition_directory != NULL)
+					DestroyPartitionDirectory(root->glob->partition_directory);
+				
+				// assgin result
+				results[idx++] = result;
+			}
+
+			// invoke lcm to selected plan
+			int *selected_plan_idxes = (int*)malloc(saved_path_num * sizeof(int));
+			lcm_select_nfirst_best_plans(results, outerrel->pathlist->length, saved_path_num, selected_plan_idxes);
+
+			// save the path with index in selected_plan_idxes
+			int max_size = pg_nextpower2_32(8);
+			max_size -= LIST_HEADER_OVERHEAD;
+
+			// delete not selected plan
+			int selected_plan_idx = saved_path_num - 1;
+			for(int i=outerrel->pathlist->length-1; i>=0; i--)
+			{
+				if(selected_plan_idx >= 0)
+				{
+					if(i == selected_plan_idxes[selected_plan_idx])
+					{
+						selected_plan_idx--;
+					} else {
+						list_delete_nth_cell(outerrel->pathlist, i);
+					}
+				}
+			}
+		}
+		if(innerrel->pathlist->length > max_path_num)
+		{
+			truncated = true;
+			innerrel_init_path_num = innerrel->pathlist->length;
+			// list_truncate(innerrel->pathlist, 20);
+
+			// generate PlannedStmt for candidate plans
+			PlannedStmt **results = (PlannedStmt**)malloc(sizeof(PlannedStmt*) * list_length(innerrel->pathlist));
+			int idx = 0;
+			foreach (p1, innerrel->pathlist)
+			{
+				Path * current_path = (Path *) lfirst(p1);	
+				top_plan = create_plan(root, current_path);
+
+				/*
+				* If creating a plan for a scrollable cursor, make sure it can run
+				* backwards on demand.  Add a Material node at the top at need.
+				*/
+				if (cursorOptions & CURSOR_OPT_SCROLL)
+				{
+					if (!ExecSupportsBackwardScan(top_plan))
+						top_plan = materialize_finished_plan(top_plan);
+				}
+
+				/*
+				* Optionally add a Gather node for testing purposes, provided this is
+				* actually a safe thing to do.
+				*/
+				if (force_parallel_mode != FORCE_PARALLEL_OFF && top_plan->parallel_safe)
+				{
+					Gather	   *gather = makeNode(Gather);
+
+					/*
+					* If there are any initPlans attached to the formerly-top plan node,
+					* move them up to the Gather node; same as we do for Material node in
+					* materialize_finished_plan.
+					*/
+					gather->plan.initPlan = top_plan->initPlan;
+					top_plan->initPlan = NIL;
+
+					gather->plan.targetlist = top_plan->targetlist;
+					gather->plan.qual = NIL;
+					gather->plan.lefttree = top_plan;
+					gather->plan.righttree = NULL;
+					gather->num_workers = 1;
+					gather->single_copy = true;
+					gather->invisible = (force_parallel_mode == FORCE_PARALLEL_REGRESS);
+
+					/*
+					* Since this Gather has no parallel-aware descendants to signal to,
+					* we don't need a rescan Param.
+					*/
+					gather->rescan_param = -1;
+
+					/*
+					* Ideally we'd use cost_gather here, but setting up dummy path data
+					* to satisfy it doesn't seem much cleaner than knowing what it does.
+					*/
+					gather->plan.startup_cost = top_plan->startup_cost +
+						parallel_setup_cost;
+					gather->plan.total_cost = top_plan->total_cost +
+						parallel_setup_cost + parallel_tuple_cost * top_plan->plan_rows;
+					gather->plan.plan_rows = top_plan->plan_rows;
+					gather->plan.plan_width = top_plan->plan_width;
+					gather->plan.parallel_aware = false;
+					gather->plan.parallel_safe = false;
+
+					/* use parallel mode for parallel plans. */
+					root->glob->parallelModeNeeded = true;
+
+					top_plan = &gather->plan;
+				}
+
+				/*
+				* If any Params were generated, run through the plan tree and compute
+				* each plan node's extParam/allParam sets.  Ideally we'd merge this into
+				* set_plan_references' tree traversal, but for now it has to be separate
+				* because we need to visit subplans before not after main plan.
+				*/
+				if (root->glob->paramExecTypes != NIL)
+				{
+					Assert(list_length(root->glob->subplans) == list_length(root->glob->subroots));
+					forboth(lp, root->glob->subplans, lr, root->glob->subroots)
+					{
+						Plan	   *subplan = (Plan *) lfirst(lp);
+						PlannerInfo *subroot = lfirst_node(PlannerInfo, lr);
+
+						SS_finalize_plan(subroot, subplan);
+					}
+					SS_finalize_plan(root, top_plan);
+				}
+
+					/* final cleanup of the plan */
+				Assert(root->glob->finalrtable == NIL);
+				Assert(root->glob->finalrowmarks == NIL);
+				Assert(root->glob->resultRelations == NIL);
+				Assert(root->glob->appendRelations == NIL);
+				top_plan = set_plan_references(root, top_plan);
+				Assert(list_length(root->glob->subplans) == list_length(root->glob->subroots));
+				forboth(lp, root->glob->subplans, lr, root->glob->subroots)
+				{
+					Plan	   *subplan = (Plan *) lfirst(lp);
+					PlannerInfo *subroot = lfirst_node(PlannerInfo, lr);
+
+					lfirst(lp) = set_plan_references(subroot, subplan);
+				}
+
+				/* build the PlannedStmt result */
+				result = makeNode(PlannedStmt);
+
+				result->commandType = root->parse->commandType;
+				result->queryId = root->parse->queryId;
+				result->hasReturning = (root->parse->returningList != NIL);
+				result->hasModifyingCTE = root->parse->hasModifyingCTE;
+				result->canSetTag = root->parse->canSetTag;
+				result->transientPlan = root->glob->transientPlan;
+				result->dependsOnRole = root->glob->dependsOnRole;
+				result->parallelModeNeeded = root->glob->parallelModeNeeded;
+				result->planTree = top_plan;
+				result->rtable = root->glob->finalrtable;
+				result->resultRelations = root->glob->resultRelations;
+				result->appendRelations = root->glob->appendRelations;
+				result->subplans = root->glob->subplans;
+				result->rewindPlanIDs = root->glob->rewindPlanIDs;
+				result->rowMarks = root->glob->finalrowmarks;
+				result->relationOids = root->glob->relationOids;
+				result->invalItems = root->glob->invalItems;
+				result->paramExecTypes = root->glob->paramExecTypes;
+				/* utilityStmt should be null, but we might as well copy it */
+				result->utilityStmt = root->parse->utilityStmt;
+				result->stmt_location = root->parse->stmt_location;
+				result->stmt_len = root->parse->stmt_len;
+
+				result->jitFlags = PGJIT_NONE;
+				if (jit_enabled && jit_above_cost >= 0 &&
+					top_plan->total_cost > jit_above_cost)
+				{
+					result->jitFlags |= PGJIT_PERFORM;
+
+					/*
+					* Decide how much effort should be put into generating better code.
+					*/
+					if (jit_optimize_above_cost >= 0 &&
+						top_plan->total_cost > jit_optimize_above_cost)
+						result->jitFlags |= PGJIT_OPT3;
+					if (jit_inline_above_cost >= 0 &&
+						top_plan->total_cost > jit_inline_above_cost)
+						result->jitFlags |= PGJIT_INLINE;
+
+					/*
+					* Decide which operations should be JITed.
+					*/
+					if (jit_expressions)
+						result->jitFlags |= PGJIT_EXPR;
+					if (jit_tuple_deforming)
+						result->jitFlags |= PGJIT_DEFORM;
+				}
+
+				if (root->glob->partition_directory != NULL)
+					DestroyPartitionDirectory(root->glob->partition_directory);
+				
+				// assgin result
+				results[idx++] = result;
+			}
+
+			// invoke lcm to selected plan
+			int *selected_plan_idxes = (int*)malloc(saved_path_num * sizeof(int));
+			lcm_select_nfirst_best_plans(results, innerrel->pathlist->length, saved_path_num, selected_plan_idxes);
+
+			// save the path with index in selected_plan_idxes
+			int max_size = pg_nextpower2_32(8);
+			max_size -= LIST_HEADER_OVERHEAD;
+
+			// delete not selected plan
+			int selected_plan_idx = saved_path_num - 1;
+			for(int i=innerrel->pathlist->length-1; i>=0; i--)
+			{
+				if(selected_plan_idx >= 0)
+				{
+					if(i == selected_plan_idxes[selected_plan_idx])
+					{
+						selected_plan_idx--;
+					} else {
+						list_delete_nth_cell(innerrel->pathlist, i);
+					}
+				}
+			}
+		}
+
+		if(truncated) 
+		{
+			FILE *fp;
+			fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+			fprintf(fp, "[INFO] add_paths_to_joinrel: truncate paths of son rels\n");
+			int relid;
+			int wordnum;
+			Relids rel_relids = joinrel->relids;
+			int relids_nwords = rel_relids->nwords;
+			for(wordnum = 0; wordnum < relids_nwords; wordnum++)
+			{
+				bitmapword w = rel_relids->words[wordnum];
+				relid = (int) w;
+				fprintf(fp, "Parent relid: %d\n", relid);
+			}
+
+			if(outerrel_init_path_num != -1) 
+			{
+				rel_relids = outerrel->relids;
+				relids_nwords = rel_relids->nwords;
+				for(wordnum = 0; wordnum < relids_nwords; wordnum++)
+				{
+					bitmapword w = rel_relids->words[wordnum];
+					relid = (int) w;
+					fprintf(fp, "Outerrel relid: %d, candidate path num:%d\n", relid, outerrel_init_path_num);
+				}
+			}
+
+			if(innerrel_init_path_num != -1) 
+			{
+				rel_relids = innerrel->relids;
+				relids_nwords = rel_relids->nwords;
+				for(wordnum = 0; wordnum < relids_nwords; wordnum++)
+				{
+					bitmapword w = rel_relids->words[wordnum];
+					relid = (int) w;
+					fprintf(fp, "Innerrel relid: %d, candidate path num:%d\n", relid, innerrel_init_path_num);
+				}
+			}
+			fclose(fp);
+		}
+	}
 
 	/*
 	 * See if the inner relation is provably unique for this outer rel.
@@ -335,6 +774,19 @@ add_paths_to_joinrel(PlannerInfo *root,
 	if (set_join_pathlist_hook)
 		set_join_pathlist_hook(root, joinrel, outerrel, innerrel,
 							   jointype, &extra);
+	FILE *fp;
+	fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+	Relids rel_relids = joinrel->relids;
+    int relids_nwords = rel_relids->nwords;
+	int wordnum;
+    for(wordnum = 0; wordnum < relids_nwords; wordnum++)
+    {
+        bitmapword w = rel_relids->words[wordnum];
+        fprintf(fp, "inner_relid %d = %ld\n", wordnum, w);
+    }
+	fprintf(fp, "Number of candidate join paths: %d\n", joinrel->pathlist->length);
+	fprintf(fp, "Max Number of candidate join paths: %d\n", joinrel->pathlist->max_length);
+	fclose(fp);	
 }
 
 /*
@@ -1155,6 +1607,171 @@ sort_inner_and_outer(PlannerInfo *root,
 	List	   *all_pathkeys;
 	ListCell   *l;
 
+	bool lcm_enabled = true;
+	if(lcm_enabled) {
+		ListCell *p1, *p2;
+		foreach (p1, outerrel->pathlist)
+			foreach (p2, innerrel->pathlist)
+			{
+				outer_path = (Path *) lfirst(p1);
+				inner_path = (Path *) lfirst(p2);
+
+				/*
+				* If either cheapest-total path is parameterized by the other rel, we
+				* can't use a mergejoin.  (There's no use looking for alternative input
+				* paths, since these should already be the least-parameterized available
+				* paths.)
+				*/
+				if (PATH_PARAM_BY_REL(outer_path, innerrel) ||
+					PATH_PARAM_BY_REL(inner_path, outerrel))
+					return;
+
+				/*
+				* If unique-ification is requested, do it and then handle as a plain
+				* inner join.
+				*/
+				if (jointype == JOIN_UNIQUE_OUTER)
+				{
+					outer_path = (Path *) create_unique_path(root, outerrel,
+															outer_path, extra->sjinfo);
+					Assert(outer_path);
+					jointype = JOIN_INNER;
+				}
+				else if (jointype == JOIN_UNIQUE_INNER)
+				{
+					inner_path = (Path *) create_unique_path(root, innerrel,
+															inner_path, extra->sjinfo);
+					Assert(inner_path);
+					jointype = JOIN_INNER;
+				}
+
+				/*
+				* If the joinrel is parallel-safe, we may be able to consider a partial
+				* merge join.  However, we can't handle JOIN_UNIQUE_OUTER, because the
+				* outer path will be partial, and therefore we won't be able to properly
+				* guarantee uniqueness.  Similarly, we can't handle JOIN_FULL and
+				* JOIN_RIGHT, because they can produce false null extended rows.  Also,
+				* the resulting path must not be parameterized.
+				*/
+				if (joinrel->consider_parallel &&
+					save_jointype != JOIN_UNIQUE_OUTER &&
+					save_jointype != JOIN_FULL &&
+					save_jointype != JOIN_RIGHT &&
+					outerrel->partial_pathlist != NIL &&
+					bms_is_empty(joinrel->lateral_relids))
+				{
+					cheapest_partial_outer = (Path *) linitial(outerrel->partial_pathlist);
+
+					if (inner_path->parallel_safe)
+						cheapest_safe_inner = inner_path;
+					else if (save_jointype != JOIN_UNIQUE_INNER)
+						cheapest_safe_inner =
+							get_cheapest_parallel_safe_total_inner(innerrel->pathlist);
+				}
+
+				/*
+				* Each possible ordering of the available mergejoin clauses will generate
+				* a differently-sorted result path at essentially the same cost.  We have
+				* no basis for choosing one over another at this level of joining, but
+				* some sort orders may be more useful than others for higher-level
+				* mergejoins, so it's worth considering multiple orderings.
+				*
+				* Actually, it's not quite true that every mergeclause ordering will
+				* generate a different path order, because some of the clauses may be
+				* partially redundant (refer to the same EquivalenceClasses).  Therefore,
+				* what we do is convert the mergeclause list to a list of canonical
+				* pathkeys, and then consider different orderings of the pathkeys.
+				*
+				* Generating a path for *every* permutation of the pathkeys doesn't seem
+				* like a winning strategy; the cost in planning time is too high. For
+				* now, we generate one path for each pathkey, listing that pathkey first
+				* and the rest in random order.  This should allow at least a one-clause
+				* mergejoin without re-sorting against any other possible mergejoin
+				* partner path.  But if we've not guessed the right ordering of secondary
+				* keys, we may end up evaluating clauses as qpquals when they could have
+				* been done as mergeclauses.  (In practice, it's rare that there's more
+				* than two or three mergeclauses, so expending a huge amount of thought
+				* on that is probably not worth it.)
+				*
+				* The pathkey order returned by select_outer_pathkeys_for_merge() has
+				* some heuristics behind it (see that function), so be sure to try it
+				* exactly as-is as well as making variants.
+				*/
+				all_pathkeys = select_outer_pathkeys_for_merge(root,
+															extra->mergeclause_list,
+															joinrel);
+
+				foreach(l, all_pathkeys)
+				{
+					PathKey    *front_pathkey = (PathKey *) lfirst(l);
+					List	   *cur_mergeclauses;
+					List	   *outerkeys;
+					List	   *innerkeys;
+					List	   *merge_pathkeys;
+
+					/* Make a pathkey list with this guy first */
+					if (l != list_head(all_pathkeys))
+						outerkeys = lcons(front_pathkey,
+										list_delete_nth_cell(list_copy(all_pathkeys),
+															foreach_current_index(l)));
+					else
+						outerkeys = all_pathkeys;	/* no work at first one... */
+
+					/* Sort the mergeclauses into the corresponding ordering */
+					cur_mergeclauses =
+						find_mergeclauses_for_outer_pathkeys(root,
+															outerkeys,
+															extra->mergeclause_list);
+
+					/* Should have used them all... */
+					Assert(list_length(cur_mergeclauses) == list_length(extra->mergeclause_list));
+
+					/* Build sort pathkeys for the inner side */
+					innerkeys = make_inner_pathkeys_for_merge(root,
+															cur_mergeclauses,
+															outerkeys);
+
+					/* Build pathkeys representing output sort order */
+					merge_pathkeys = build_join_pathkeys(root, joinrel, jointype,
+														outerkeys);
+
+					/*
+					* And now we can make the path.
+					*
+					* Note: it's possible that the cheapest paths will already be sorted
+					* properly.  try_mergejoin_path will detect that case and suppress an
+					* explicit sort step, so we needn't do so here.
+					*/
+					try_mergejoin_path(root,
+									joinrel,
+									outer_path,
+									inner_path,
+									merge_pathkeys,
+									cur_mergeclauses,
+									outerkeys,
+									innerkeys,
+									jointype,
+									extra,
+									false);
+
+					/*
+					* If we have partial outer and parallel safe inner path then try
+					* partial mergejoin path.
+					*/
+					if (cheapest_partial_outer && cheapest_safe_inner)
+						try_partial_mergejoin_path(root,
+												joinrel,
+												cheapest_partial_outer,
+												cheapest_safe_inner,
+												merge_pathkeys,
+												cur_mergeclauses,
+												outerkeys,
+												innerkeys,
+												jointype,
+												extra);
+				}
+			}
+	} else {
 	/*
 	 * We only consider the cheapest-total-cost input paths, since we are
 	 * assuming here that a sort is required.  We will consider
@@ -1324,6 +1941,7 @@ sort_inner_and_outer(PlannerInfo *root,
 									   innerkeys,
 									   jointype,
 									   extra);
+	}
 	}
 }
 

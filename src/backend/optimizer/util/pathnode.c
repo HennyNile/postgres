@@ -629,13 +629,30 @@ add_path(RelOptInfo *parent_rel, Path *new_path)
 	}
 
 	// lql: limit the number of feasible paths
-	bool lcm_enabled = true;
-	int max_path_num = 20;
-	if (lcm_enabled) {
-		if (list_length(parent_rel->pathlist) > 100) {
-			parent_rel->pathlist = list_truncate(parent_rel->pathlist, max_path_num);
-		}
-	}
+	// bool lcm_enabled = true;
+	// int max_path_num = 20;
+	// if (lcm_enabled && parent_rel->reloptkind != RELOPT_JOINREL) {
+	// 	if (list_length(parent_rel->pathlist) > 100) {
+	// 		FILE *fp;
+	// 		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+	// 		fprintf(fp, "[INFO] add_path: check node relkind %d\n", parent_rel->reloptkind);
+	// 		fclose(fp);
+	// 		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+	// 		Relids rel_relids = parent_rel->relids;
+	// 		int relids_nwords = rel_relids->nwords;
+	// 		int wordnum;
+	// 		for(wordnum = 0; wordnum < relids_nwords; wordnum++)
+	// 		{
+	// 			bitmapword w = rel_relids->words[wordnum];
+	// 			fprintf(fp, "inner_relid %d = %ld\n", wordnum, w);
+	// 		}
+	// 		fprintf(fp, "Number of candidate join paths: %d\n", parent_rel->pathlist->length);
+	// 		fprintf(fp, "Max Number of candidate join paths: %d\n", parent_rel->pathlist->max_length);
+	// 		fclose(fp);
+
+	// 		parent_rel->pathlist = list_truncate(parent_rel->pathlist, max_path_num);
+	// 	}
+	// }
 }
 
 /*

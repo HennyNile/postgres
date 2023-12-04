@@ -16,11 +16,16 @@
 #define MSG_GUIDED_OPTIMIZATION "guided_optimization"
 #define MSG_PREDICT "predict"
 #define MSG_QUERY_ID "query_id"
+#define MSG_SELECT_NFIRST "select_nfirst"
+#define MSG_SELECT_PLAN_NUM "select_plan_num"
 
 #define MSG_SCORE "latency"
 #define MSG_ERROR "error"
 #define MSG_FINISH "finish"
-#define MSG_END_FLAG "*LERO_END*"
+#define MSG_PLAN_IDX "selected_plan_idx"
+#define MSG_NFIRST_PLAN_IDX "selected_plan_idxes"
+#define MSG_END_FLAG "*LCM_END*"
+#define MSG_SPLIT_FLAG "*LCM_SPLIT*"
 
 extern int 
 connect_to_server(const char* host, int port);
