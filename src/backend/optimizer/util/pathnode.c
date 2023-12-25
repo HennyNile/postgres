@@ -455,7 +455,7 @@ add_path(RelOptInfo *parent_rel, Path *new_path)
 											 STD_FUZZ_FACTOR);
 
 		// lql: enable to add all potential paths
-		bool lcm_enabled = true;
+		// bool lcm_enabled = true;
 		if (lcm_enabled) {
 			costcmp = COSTS_DIFFERENT;
 		}
@@ -688,7 +688,7 @@ add_path_precheck(RelOptInfo *parent_rel,
 	consider_startup = required_outer ? parent_rel->consider_param_startup : parent_rel->consider_startup;
 
 	// lql: add all potential paths
-	bool lcm_enabled = true;
+	// bool lcm_enabled = true;
 	if (lcm_enabled) {
 		return true;
 	}

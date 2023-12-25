@@ -232,6 +232,8 @@ plan_to_json(PlannedStmt* stmt, Plan *plan, yyjson_mut_doc *json_doc)
 				op_name = "Nested Loop";
 			}
 
+			yyjson_mut_obj_put(op, yyjson_mut_strcpy(json_doc, "Plan Rows"), yyjson_mut_real(json_doc, plan->plan_rows));
+
 			yyjson_mut_val *inner = plan_to_json(stmt, plan->righttree, json_doc);
 			yyjson_mut_val *outer = plan_to_json(stmt, plan->lefttree, json_doc);
 			yyjson_mut_arr_append(inputs, outer);

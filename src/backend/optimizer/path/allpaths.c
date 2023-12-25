@@ -2988,7 +2988,7 @@ generate_gather_paths(PlannerInfo *root, RelOptInfo *rel, bool override_rows)
 	 * of partial_pathlist because of the way add_partial_path works.
 	 */
 	// lql: add more potential paths
-	bool lcm_enabled = true;
+	// bool lcm_enabled = true;
 	if (lcm_enabled)
 	{
 		foreach(lc, rel->partial_pathlist)

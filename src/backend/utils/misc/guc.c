@@ -1013,6 +1013,16 @@ static const unit_conversion time_unit_conversion_table[] =
 static struct config_bool ConfigureNamesBool[] =
 {
 	{
+		{"lcm_enabled", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Enables the planner's use of learned cost model."),
+			NULL,
+			GUC_EXPLAIN
+		},
+		&lcm_enabled,
+		false,
+		NULL, NULL, NULL
+	},
+	{
 		{"enable_seqscan", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("Enables the planner's use of sequential-scan plans."),
 			NULL,

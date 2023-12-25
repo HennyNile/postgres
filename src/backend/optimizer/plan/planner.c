@@ -17,6 +17,7 @@
 
 #include <limits.h>
 #include <math.h>
+#include <sys/time.h>
 
 #include "access/genam.h"
 #include "access/htup_details.h"
@@ -408,15 +409,19 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 							false, tuple_fraction);
 
 	// lql: generate plans for all potential paths
-	bool lcm_enabled = true;
-	ListCell *p1;
+	// bool lcm_enabled = true;
 	if(lcm_enabled) 
 	{
+		ListCell *p1;
 		final_rel = fetch_upper_rel(root, UPPERREL_FINAL, NULL);
+		// first filter the plans to avoid extremely bad plans
+		int max_path_num = 20;
+		list_truncate(final_rel->pathlist, max_path_num);
+
+		// generate plans for all potential paths
 		PlannedStmt **results = (PlannedStmt**)malloc(sizeof(PlannedStmt*) * list_length(final_rel->pathlist));
 		int idx = 0;
-		// int max_path_num = 20;
-		// list_truncate(final_rel->pathlist, max_path_num);
+		
 		foreach (p1, final_rel->pathlist)
 		{
 
@@ -582,7 +587,20 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 		fclose(fp);	
 		
 		// the selected_idx indicates the index of the best plan for LCM. 
-		int selected_idx = lcm_select_best_plan(results, idx); 
+		struct timeval tv;
+		gettimeofday(&tv, NULL);
+
+		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+		fprintf(fp, "[INFO] standard_planner: start invoke lcm, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
+		fclose(fp);
+		
+		// int selected_idx = lcm_select_best_plan(results, idx); 
+		int selected_idx = 0;
+
+		gettimeofday(&tv, NULL);
+		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+		fprintf(fp, "[INFO] standard_planner: finish invoke lcm, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
+		fclose(fp);
 
 		// free the memory of sub-optimal plans
 		for(int i=0; i<idx; i++)
@@ -6431,7 +6449,7 @@ add_paths_to_grouping_rel(PlannerInfo *root, RelOptInfo *input_rel,
 													&presorted_keys);
 
 			// lql: add all potential paths
-			bool lcm_enabled = true;
+			// bool lcm_enabled = true;
 			if (lcm_enabled) {
 				/* Sort the the path if it isn't already sorted */
 				if (!is_sorted)

@@ -1233,9 +1233,9 @@ fetch_upper_rel(PlannerInfo *root, UpperRelationKind kind, Relids relids)
 			fprintf(fp, "UpperRelationKind: %d\n", (int)kind);
 			fprintf(fp, "Number of candidate complete plans: %d\n", upperrel->pathlist->length);
 			fprintf(fp, "Max Number of candidate complete plans: %d\n", upperrel->pathlist->max_length);
-			fclose(fp);	
+			fclose(fp);
+			return upperrel;
 		}
-		return upperrel;
 	}
 
 	upperrel = makeNode(RelOptInfo);
