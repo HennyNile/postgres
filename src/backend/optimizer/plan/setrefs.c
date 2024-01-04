@@ -111,7 +111,7 @@ typedef struct
 #define fix_scan_list(root, lst, rtoffset, num_exec) \
 	((List *) fix_scan_expr(root, (Node *) (lst), rtoffset, num_exec))
 
-static void add_rtes_to_flat_rtable(PlannerInfo *root, bool recursing);
+// static void add_rtes_to_flat_rtable(PlannerInfo *root, bool recursing);
 static void flatten_unplanned_rtes(PlannerGlobal *glob, RangeTblEntry *rte);
 static bool flatten_rtes_walker(Node *node, PlannerGlobal *glob);
 static void add_rte_to_flat_rtable(PlannerGlobal *glob, RangeTblEntry *rte);
@@ -356,7 +356,7 @@ set_plan_references(PlannerInfo *root, Plan *plan)
  *
  * This can recurse into subquery plans; "recursing" is true if so.
  */
-static void
+void
 add_rtes_to_flat_rtable(PlannerInfo *root, bool recursing)
 {
 	PlannerGlobal *glob = root->glob;

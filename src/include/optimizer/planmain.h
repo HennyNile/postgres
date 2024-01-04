@@ -111,6 +111,7 @@ extern bool innerrel_is_unique(PlannerInfo *root,
 /*
  * prototypes for plan/setrefs.c
  */
+extern void add_rtes_to_flat_rtable(PlannerInfo *root, bool recursing);
 extern Plan *set_plan_references(PlannerInfo *root, Plan *plan);
 extern bool trivial_subqueryscan(SubqueryScan *plan);
 extern void record_plan_function_dependency(PlannerInfo *root, Oid funcid);

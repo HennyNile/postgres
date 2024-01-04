@@ -416,202 +416,387 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 		final_rel = fetch_upper_rel(root, UPPERREL_FINAL, NULL);
 		// first filter the plans to avoid extremely bad plans
 		int max_path_num = 20;
-		list_truncate(final_rel->pathlist, max_path_num);
+		// list_truncate(final_rel->pathlist, max_path_num);
 
 		// generate plans for all potential paths
 		PlannedStmt **results = (PlannedStmt**)malloc(sizeof(PlannedStmt*) * list_length(final_rel->pathlist));
 		int idx = 0;
 		
-		foreach (p1, final_rel->pathlist)
-		{
+		FILE *fp;
+		struct timeval tv;
+		double total_generate_plan_time;
+		double start_t;
+		double end_t;
+		gettimeofday(&tv, NULL);
+		start_t = tv.tv_sec + (tv.tv_usec / 1e6);
+		// foreach (p1, final_rel->pathlist)
+		// {
 
-			Path * current_path = (Path *) lfirst(p1);
+		// 	Path * current_path = (Path *) lfirst(p1);
 			
-			top_plan = create_plan(root, current_path);
+		// 	top_plan = create_plan(root, current_path);
+
+		// 	/*
+		// 	* If creating a plan for a scrollable cursor, make sure it can run
+		// 	* backwards on demand.  Add a Material node at the top at need.
+		// 	*/
+		// 	if (cursorOptions & CURSOR_OPT_SCROLL)
+		// 	{
+		// 		if (!ExecSupportsBackwardScan(top_plan))
+		// 			top_plan = materialize_finished_plan(top_plan);
+		// 	}
+
+		// 	/*
+		// 	* Optionally add a Gather node for testing purposes, provided this is
+		// 	* actually a safe thing to do.
+		// 	*/
+		// 	if (force_parallel_mode != FORCE_PARALLEL_OFF && top_plan->parallel_safe)
+		// 	{
+		// 		Gather	   *gather = makeNode(Gather);
+
+		// 		/*
+		// 		* If there are any initPlans attached to the formerly-top plan node,
+		// 		* move them up to the Gather node; same as we do for Material node in
+		// 		* materialize_finished_plan.
+		// 		*/
+		// 		gather->plan.initPlan = top_plan->initPlan;
+		// 		top_plan->initPlan = NIL;
+
+		// 		gather->plan.targetlist = top_plan->targetlist;
+		// 		gather->plan.qual = NIL;
+		// 		gather->plan.lefttree = top_plan;
+		// 		gather->plan.righttree = NULL;
+		// 		gather->num_workers = 1;
+		// 		gather->single_copy = true;
+		// 		gather->invisible = (force_parallel_mode == FORCE_PARALLEL_REGRESS);
+
+		// 		/*
+		// 		* Since this Gather has no parallel-aware descendants to signal to,
+		// 		* we don't need a rescan Param.
+		// 		*/
+		// 		gather->rescan_param = -1;
+
+		// 		/*
+		// 		* Ideally we'd use cost_gather here, but setting up dummy path data
+		// 		* to satisfy it doesn't seem much cleaner than knowing what it does.
+		// 		*/
+		// 		gather->plan.startup_cost = top_plan->startup_cost +
+		// 			parallel_setup_cost;
+		// 		gather->plan.total_cost = top_plan->total_cost +
+		// 			parallel_setup_cost + parallel_tuple_cost * top_plan->plan_rows;
+		// 		gather->plan.plan_rows = top_plan->plan_rows;
+		// 		gather->plan.plan_width = top_plan->plan_width;
+		// 		gather->plan.parallel_aware = false;
+		// 		gather->plan.parallel_safe = false;
+
+		// 		/* use parallel mode for parallel plans. */
+		// 		root->glob->parallelModeNeeded = true;
+
+		// 		top_plan = &gather->plan;
+		// 	}
+
+		// 	/*
+		// 	* If any Params were generated, run through the plan tree and compute
+		// 	* each plan node's extParam/allParam sets.  Ideally we'd merge this into
+		// 	* set_plan_references' tree traversal, but for now it has to be separate
+		// 	* because we need to visit subplans before not after main plan.
+		// 	*/
+		// 	if (glob->paramExecTypes != NIL)
+		// 	{
+		// 		Assert(list_length(glob->subplans) == list_length(glob->subroots));
+		// 		forboth(lp, glob->subplans, lr, glob->subroots)
+		// 		{
+		// 			Plan	   *subplan = (Plan *) lfirst(lp);
+		// 			PlannerInfo *subroot = lfirst_node(PlannerInfo, lr);
+
+		// 			SS_finalize_plan(subroot, subplan);
+		// 		}
+		// 		SS_finalize_plan(root, top_plan);
+		// 	}
+
+		// 	/* final cleanup of the plan */
+		// 	Assert(glob->finalrtable == NIL);
+		// 	Assert(glob->finalrowmarks == NIL);
+		// 	Assert(glob->resultRelations == NIL);
+		// 	Assert(glob->appendRelations == NIL);
+		// 	top_plan = set_plan_references(root, top_plan);
+		// 	/* ... and the subplans (both regular subplans and initplans) */
+		// 	Assert(list_length(glob->subplans) == list_length(glob->subroots));
+		// 	forboth(lp, glob->subplans, lr, glob->subroots)
+		// 	{
+		// 		Plan	   *subplan = (Plan *) lfirst(lp);
+		// 		PlannerInfo *subroot = lfirst_node(PlannerInfo, lr);
+
+		// 		lfirst(lp) = set_plan_references(subroot, subplan);
+		// 	}
+
+		// 	/* build the PlannedStmt result */
+		// 	result = makeNode(PlannedStmt);
+
+		// 	result->commandType = parse->commandType;
+		// 	result->queryId = parse->queryId;
+		// 	result->hasReturning = (parse->returningList != NIL);
+		// 	result->hasModifyingCTE = parse->hasModifyingCTE;
+		// 	result->canSetTag = parse->canSetTag;
+		// 	result->transientPlan = glob->transientPlan;
+		// 	result->dependsOnRole = glob->dependsOnRole;
+		// 	result->parallelModeNeeded = glob->parallelModeNeeded;
+		// 	result->planTree = top_plan;
+		// 	result->rtable = glob->finalrtable;
+		// 	result->resultRelations = glob->resultRelations;
+		// 	result->appendRelations = glob->appendRelations;
+		// 	result->subplans = glob->subplans;
+		// 	result->rewindPlanIDs = glob->rewindPlanIDs;
+		// 	result->rowMarks = glob->finalrowmarks;
+		// 	result->relationOids = glob->relationOids;
+		// 	result->invalItems = glob->invalItems;
+		// 	result->paramExecTypes = glob->paramExecTypes;
+		// 	/* utilityStmt should be null, but we might as well copy it */
+		// 	result->utilityStmt = parse->utilityStmt;
+		// 	result->stmt_location = parse->stmt_location;
+		// 	result->stmt_len = parse->stmt_len;
+
+		// 	result->jitFlags = PGJIT_NONE;
+		// 	if (jit_enabled && jit_above_cost >= 0 &&
+		// 		top_plan->total_cost > jit_above_cost)
+		// 	{
+		// 		result->jitFlags |= PGJIT_PERFORM;
+
+		// 		/*
+		// 		* Decide how much effort should be put into generating better code.
+		// 		*/
+		// 		if (jit_optimize_above_cost >= 0 &&
+		// 			top_plan->total_cost > jit_optimize_above_cost)
+		// 			result->jitFlags |= PGJIT_OPT3;
+		// 		if (jit_inline_above_cost >= 0 &&
+		// 			top_plan->total_cost > jit_inline_above_cost)
+		// 			result->jitFlags |= PGJIT_INLINE;
+
+		// 		/*
+		// 		* Decide which operations should be JITed.
+		// 		*/
+		// 		if (jit_expressions)
+		// 			result->jitFlags |= PGJIT_EXPR;
+		// 		if (jit_tuple_deforming)
+		// 			result->jitFlags |= PGJIT_DEFORM;
+		// 	}
+
+		// 	if (glob->partition_directory != NULL)
+		// 		DestroyPartitionDirectory(glob->partition_directory);
+			
+		// 	// assgin result
+		// 	results[idx++] = result;
+		// }
+		gettimeofday(&tv, NULL);
+		end_t = tv.tv_sec + (tv.tv_usec / 1e6);
+		total_generate_plan_time = end_t - start_t;		
+
+		fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log_time_stats", "a+");
+		fprintf(fp, "%d, %f\n\n", final_rel->pathlist->length, total_generate_plan_time);
+		fclose(fp);
+
+		gettimeofday(&tv, NULL);
+		start_t = tv.tv_sec + (tv.tv_usec / 1e6);
+		// foreach (p1, final_rel->pathlist)
+		// {
+		// 	Path * current_path = (Path *) lfirst(p1);
+		// 	encode_path(current_path, 0);
+		// 	// break;
+		// }
+		gettimeofday(&tv, NULL);
+		end_t = tv.tv_sec + (tv.tv_usec / 1e6);
+		total_generate_plan_time = end_t - start_t;
+
+		fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log_time_stats", "a+");
+		fprintf(fp, "%d, %f\n\n", final_rel->pathlist->length, total_generate_plan_time);
+		fclose(fp);
+
+		fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+		fprintf(fp, "CursorOption: %d\n", cursorOptions);
+		fprintf(fp, "There are %d final plans.\n", final_rel->pathlist->length);
+		fclose(fp);	
+		
+		// the selected_idx indicates the index of the best plan for LCM. 
+		gettimeofday(&tv, NULL);
+		fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+		fprintf(fp, "[INFO] standard_planner: start invoke lcm, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
+		fclose(fp);
+		
+		// int selected_idx = lcm_select_best_plan(results, idx);
+		add_rtes_to_flat_rtable(root, false);
+		int selected_idx = lcm_select_best_path(root->glob, final_rel->pathlist, final_rel->pathlist->length);
+		// int selected_idx = 0;
+
+		gettimeofday(&tv, NULL);
+		fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+		fprintf(fp, "[INFO] standard_planner: finish invoke lcm, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
+		fclose(fp);
+
+		// free the memory of sub-optimal plans
+		// for(int i=0; i<idx; i++)
+		// {
+		// 	if(selected_idx==i)
+		// 	{
+		// 		continue;
+		// 	}
+		// 	pfree(results[i]);
+		// }
+		// return results[selected_idx];
+		
+		// generate the plan for the best path
+		Path * current_path = (Path *) list_nth(final_rel->pathlist, selected_idx);
+
+		top_plan = create_plan(root, current_path);
+
+		/*
+		* If creating a plan for a scrollable cursor, make sure it can run
+		* backwards on demand.  Add a Material node at the top at need.
+		*/
+		if (cursorOptions & CURSOR_OPT_SCROLL)
+		{
+			if (!ExecSupportsBackwardScan(top_plan))
+				top_plan = materialize_finished_plan(top_plan);
+		}
+
+		/*
+		* Optionally add a Gather node for testing purposes, provided this is
+		* actually a safe thing to do.
+		*/
+		if (force_parallel_mode != FORCE_PARALLEL_OFF && top_plan->parallel_safe)
+		{
+			Gather	   *gather = makeNode(Gather);
 
 			/*
-			* If creating a plan for a scrollable cursor, make sure it can run
-			* backwards on demand.  Add a Material node at the top at need.
+			* If there are any initPlans attached to the formerly-top plan node,
+			* move them up to the Gather node; same as we do for Material node in
+			* materialize_finished_plan.
 			*/
-			if (cursorOptions & CURSOR_OPT_SCROLL)
-			{
-				if (!ExecSupportsBackwardScan(top_plan))
-					top_plan = materialize_finished_plan(top_plan);
-			}
+			gather->plan.initPlan = top_plan->initPlan;
+			top_plan->initPlan = NIL;
+
+			gather->plan.targetlist = top_plan->targetlist;
+			gather->plan.qual = NIL;
+			gather->plan.lefttree = top_plan;
+			gather->plan.righttree = NULL;
+			gather->num_workers = 1;
+			gather->single_copy = true;
+			gather->invisible = (force_parallel_mode == FORCE_PARALLEL_REGRESS);
 
 			/*
-			* Optionally add a Gather node for testing purposes, provided this is
-			* actually a safe thing to do.
+			* Since this Gather has no parallel-aware descendants to signal to,
+			* we don't need a rescan Param.
 			*/
-			if (force_parallel_mode != FORCE_PARALLEL_OFF && top_plan->parallel_safe)
-			{
-				Gather	   *gather = makeNode(Gather);
-
-				/*
-				* If there are any initPlans attached to the formerly-top plan node,
-				* move them up to the Gather node; same as we do for Material node in
-				* materialize_finished_plan.
-				*/
-				gather->plan.initPlan = top_plan->initPlan;
-				top_plan->initPlan = NIL;
-
-				gather->plan.targetlist = top_plan->targetlist;
-				gather->plan.qual = NIL;
-				gather->plan.lefttree = top_plan;
-				gather->plan.righttree = NULL;
-				gather->num_workers = 1;
-				gather->single_copy = true;
-				gather->invisible = (force_parallel_mode == FORCE_PARALLEL_REGRESS);
-
-				/*
-				* Since this Gather has no parallel-aware descendants to signal to,
-				* we don't need a rescan Param.
-				*/
-				gather->rescan_param = -1;
-
-				/*
-				* Ideally we'd use cost_gather here, but setting up dummy path data
-				* to satisfy it doesn't seem much cleaner than knowing what it does.
-				*/
-				gather->plan.startup_cost = top_plan->startup_cost +
-					parallel_setup_cost;
-				gather->plan.total_cost = top_plan->total_cost +
-					parallel_setup_cost + parallel_tuple_cost * top_plan->plan_rows;
-				gather->plan.plan_rows = top_plan->plan_rows;
-				gather->plan.plan_width = top_plan->plan_width;
-				gather->plan.parallel_aware = false;
-				gather->plan.parallel_safe = false;
-
-				/* use parallel mode for parallel plans. */
-				root->glob->parallelModeNeeded = true;
-
-				top_plan = &gather->plan;
-			}
+			gather->rescan_param = -1;
 
 			/*
-			* If any Params were generated, run through the plan tree and compute
-			* each plan node's extParam/allParam sets.  Ideally we'd merge this into
-			* set_plan_references' tree traversal, but for now it has to be separate
-			* because we need to visit subplans before not after main plan.
+			* Ideally we'd use cost_gather here, but setting up dummy path data
+			* to satisfy it doesn't seem much cleaner than knowing what it does.
 			*/
-			if (glob->paramExecTypes != NIL)
-			{
-				Assert(list_length(glob->subplans) == list_length(glob->subroots));
-				forboth(lp, glob->subplans, lr, glob->subroots)
-				{
-					Plan	   *subplan = (Plan *) lfirst(lp);
-					PlannerInfo *subroot = lfirst_node(PlannerInfo, lr);
+			gather->plan.startup_cost = top_plan->startup_cost +
+				parallel_setup_cost;
+			gather->plan.total_cost = top_plan->total_cost +
+				parallel_setup_cost + parallel_tuple_cost * top_plan->plan_rows;
+			gather->plan.plan_rows = top_plan->plan_rows;
+			gather->plan.plan_width = top_plan->plan_width;
+			gather->plan.parallel_aware = false;
+			gather->plan.parallel_safe = false;
 
-					SS_finalize_plan(subroot, subplan);
-				}
-				SS_finalize_plan(root, top_plan);
-			}
+			/* use parallel mode for parallel plans. */
+			root->glob->parallelModeNeeded = true;
 
-			/* final cleanup of the plan */
-			Assert(glob->finalrtable == NIL);
-			Assert(glob->finalrowmarks == NIL);
-			Assert(glob->resultRelations == NIL);
-			Assert(glob->appendRelations == NIL);
-			top_plan = set_plan_references(root, top_plan);
-			/* ... and the subplans (both regular subplans and initplans) */
+			top_plan = &gather->plan;
+		}
+
+		/*
+		* If any Params were generated, run through the plan tree and compute
+		* each plan node's extParam/allParam sets.  Ideally we'd merge this into
+		* set_plan_references' tree traversal, but for now it has to be separate
+		* because we need to visit subplans before not after main plan.
+		*/
+		if (glob->paramExecTypes != NIL)
+		{
 			Assert(list_length(glob->subplans) == list_length(glob->subroots));
 			forboth(lp, glob->subplans, lr, glob->subroots)
 			{
 				Plan	   *subplan = (Plan *) lfirst(lp);
 				PlannerInfo *subroot = lfirst_node(PlannerInfo, lr);
 
-				lfirst(lp) = set_plan_references(subroot, subplan);
+				SS_finalize_plan(subroot, subplan);
 			}
-
-			/* build the PlannedStmt result */
-			result = makeNode(PlannedStmt);
-
-			result->commandType = parse->commandType;
-			result->queryId = parse->queryId;
-			result->hasReturning = (parse->returningList != NIL);
-			result->hasModifyingCTE = parse->hasModifyingCTE;
-			result->canSetTag = parse->canSetTag;
-			result->transientPlan = glob->transientPlan;
-			result->dependsOnRole = glob->dependsOnRole;
-			result->parallelModeNeeded = glob->parallelModeNeeded;
-			result->planTree = top_plan;
-			result->rtable = glob->finalrtable;
-			result->resultRelations = glob->resultRelations;
-			result->appendRelations = glob->appendRelations;
-			result->subplans = glob->subplans;
-			result->rewindPlanIDs = glob->rewindPlanIDs;
-			result->rowMarks = glob->finalrowmarks;
-			result->relationOids = glob->relationOids;
-			result->invalItems = glob->invalItems;
-			result->paramExecTypes = glob->paramExecTypes;
-			/* utilityStmt should be null, but we might as well copy it */
-			result->utilityStmt = parse->utilityStmt;
-			result->stmt_location = parse->stmt_location;
-			result->stmt_len = parse->stmt_len;
-
-			result->jitFlags = PGJIT_NONE;
-			if (jit_enabled && jit_above_cost >= 0 &&
-				top_plan->total_cost > jit_above_cost)
-			{
-				result->jitFlags |= PGJIT_PERFORM;
-
-				/*
-				* Decide how much effort should be put into generating better code.
-				*/
-				if (jit_optimize_above_cost >= 0 &&
-					top_plan->total_cost > jit_optimize_above_cost)
-					result->jitFlags |= PGJIT_OPT3;
-				if (jit_inline_above_cost >= 0 &&
-					top_plan->total_cost > jit_inline_above_cost)
-					result->jitFlags |= PGJIT_INLINE;
-
-				/*
-				* Decide which operations should be JITed.
-				*/
-				if (jit_expressions)
-					result->jitFlags |= PGJIT_EXPR;
-				if (jit_tuple_deforming)
-					result->jitFlags |= PGJIT_DEFORM;
-			}
-
-			if (glob->partition_directory != NULL)
-				DestroyPartitionDirectory(glob->partition_directory);
-			
-			// assgin result
-			results[idx++] = result;
+			SS_finalize_plan(root, top_plan);
 		}
-		FILE *fp;
-		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
-		fprintf(fp, "CursorOption: %d\n", cursorOptions);
-		fprintf(fp, "There are %d final plans.\n", (int)idx);
-		fclose(fp);	
-		
-		// the selected_idx indicates the index of the best plan for LCM. 
-		struct timeval tv;
-		gettimeofday(&tv, NULL);
 
-		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
-		fprintf(fp, "[INFO] standard_planner: start invoke lcm, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
-		fclose(fp);
-		
-		// int selected_idx = lcm_select_best_plan(results, idx); 
-		int selected_idx = 0;
-
-		gettimeofday(&tv, NULL);
-		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
-		fprintf(fp, "[INFO] standard_planner: finish invoke lcm, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
-		fclose(fp);
-
-		// free the memory of sub-optimal plans
-		for(int i=0; i<idx; i++)
+		/* final cleanup of the plan */
+		Assert(glob->finalrtable == NIL);
+		Assert(glob->finalrowmarks == NIL);
+		Assert(glob->resultRelations == NIL);
+		Assert(glob->appendRelations == NIL);
+		top_plan = set_plan_references(root, top_plan);
+		/* ... and the subplans (both regular subplans and initplans) */
+		Assert(list_length(glob->subplans) == list_length(glob->subroots));
+		forboth(lp, glob->subplans, lr, glob->subroots)
 		{
-			if(selected_idx==i)
-			{
-				continue;
-			}
-			pfree(results[i]);
+			Plan	   *subplan = (Plan *) lfirst(lp);
+			PlannerInfo *subroot = lfirst_node(PlannerInfo, lr);
+
+			lfirst(lp) = set_plan_references(subroot, subplan);
 		}
-		return results[selected_idx];
+
+		/* build the PlannedStmt result */
+		result = makeNode(PlannedStmt);
+
+		result->commandType = parse->commandType;
+		result->queryId = parse->queryId;
+		result->hasReturning = (parse->returningList != NIL);
+		result->hasModifyingCTE = parse->hasModifyingCTE;
+		result->canSetTag = parse->canSetTag;
+		result->transientPlan = glob->transientPlan;
+		result->dependsOnRole = glob->dependsOnRole;
+		result->parallelModeNeeded = glob->parallelModeNeeded;
+		result->planTree = top_plan;
+		result->rtable = glob->finalrtable;
+		result->resultRelations = glob->resultRelations;
+		result->appendRelations = glob->appendRelations;
+		result->subplans = glob->subplans;
+		result->rewindPlanIDs = glob->rewindPlanIDs;
+		result->rowMarks = glob->finalrowmarks;
+		result->relationOids = glob->relationOids;
+		result->invalItems = glob->invalItems;
+		result->paramExecTypes = glob->paramExecTypes;
+		/* utilityStmt should be null, but we might as well copy it */
+		result->utilityStmt = parse->utilityStmt;
+		result->stmt_location = parse->stmt_location;
+		result->stmt_len = parse->stmt_len;
+
+		result->jitFlags = PGJIT_NONE;
+		if (jit_enabled && jit_above_cost >= 0 &&
+			top_plan->total_cost > jit_above_cost)
+		{
+			result->jitFlags |= PGJIT_PERFORM;
+
+			/*
+			* Decide how much effort should be put into generating better code.
+			*/
+			if (jit_optimize_above_cost >= 0 &&
+				top_plan->total_cost > jit_optimize_above_cost)
+				result->jitFlags |= PGJIT_OPT3;
+			if (jit_inline_above_cost >= 0 &&
+				top_plan->total_cost > jit_inline_above_cost)
+				result->jitFlags |= PGJIT_INLINE;
+
+			/*
+			* Decide which operations should be JITed.
+			*/
+			if (jit_expressions)
+				result->jitFlags |= PGJIT_EXPR;
+			if (jit_tuple_deforming)
+				result->jitFlags |= PGJIT_DEFORM;
+		}
+
+		if (glob->partition_directory != NULL)
+			DestroyPartitionDirectory(glob->partition_directory);
+		
+		return result;
 	} 
 	
 	/* Select best Path and turn it into a Plan */
@@ -817,6 +1002,7 @@ subquery_planner(PlannerGlobal *glob, Query *parse,
 	root = makeNode(PlannerInfo);
 	root->parse = parse;
 	root->glob = glob;
+	add_rtes_to_flat_rtable(root, false);
 	root->query_level = parent_root ? parent_root->query_level + 1 : 1;
 	root->parent_root = parent_root;
 	root->plan_params = NIL;

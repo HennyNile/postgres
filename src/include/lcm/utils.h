@@ -54,6 +54,12 @@ int_list_to_json_arr(int l[], int n, yyjson_mut_doc *json_doc);
 extern yyjson_mut_val*
 plan_to_json(PlannedStmt* stmt, Plan *plan, yyjson_mut_doc *json_doc);
 
+extern yyjson_mut_val*
+path_to_json(Path *path, yyjson_mut_doc *json_doc);
+
+extern char*
+path_to_str(PlannerGlobal *glob, Path *path);
+
 extern void 
 add_join_input_tables(PlannerInfo *root, Path *path, RelatedTable *related_table);
 

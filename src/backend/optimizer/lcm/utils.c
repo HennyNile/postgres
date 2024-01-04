@@ -337,6 +337,445 @@ plan_to_json(PlannedStmt* stmt, Plan *plan, yyjson_mut_doc *json_doc)
     return op;
 }
 
+yyjson_mut_val*
+path_to_json(Path *path, yyjson_mut_doc *json_doc)
+{
+    yyjson_mut_val *op = yyjson_mut_obj(json_doc);
+    yyjson_mut_val *inputs = yyjson_mut_arr(json_doc);
+    
+    char *op_name;
+	double rows;
+	double width;
+	double startup_cost;
+	double total_cost;
+	yyjson_mut_val *inner;
+	yyjson_mut_val *outer;
+	switch (path->pathtype)
+	{
+		case T_SeqScan:
+            op_name = "Seq Scan";
+			rows = path->rows;
+			width = path->pathtarget->width;
+			startup_cost = path->startup_cost;
+			total_cost = path->total_cost;
+            break;
+		// case T_IndexPath:
+		case T_IndexScan:
+            op_name = "Index Scan";
+			rows = path->rows;
+			width = path->pathtarget->width;
+			startup_cost = path->startup_cost;
+			total_cost = path->total_cost;
+            break;
+		case T_IndexOnlyScan:
+			op_name = "Index Only Scan";
+			rows = path->rows;
+			width = path->pathtarget->width;
+			startup_cost = path->startup_cost;
+			total_cost = path->total_cost;
+            break;
+		case T_BitmapIndexScan:
+			op_name = "Bitmap Index Scan";
+			rows = path->rows;
+			width = path->pathtarget->width;
+			startup_cost = path->startup_cost;
+			total_cost = path->total_cost;
+            break;
+		// case T_BitmapHeapPath:
+		case T_BitmapHeapScan:
+			op_name = "Bitmap Heap Scan";
+			rows = path->rows;
+			width = path->pathtarget->width;
+			startup_cost = path->startup_cost;
+			total_cost = path->total_cost;
+            break;
+		// case T_HashPath:
+		case T_HashJoin:
+			op_name = "Hash Join";
+			rows = ((HashPath* )path)->jpath.path.rows;
+			width = ((HashPath* )path)->jpath.path.pathtarget->width;
+			startup_cost = ((HashPath* )path)->jpath.path.startup_cost;
+			total_cost = ((HashPath* )path)->jpath.path.total_cost;
+			inner = path_to_json(((HashPath* )path)->jpath.innerjoinpath, json_doc);
+			outer = path_to_json(((HashPath* )path)->jpath.outerjoinpath, json_doc);
+			yyjson_mut_arr_append(inputs, outer);
+            yyjson_mut_arr_append(inputs, inner);
+		// case T_MergePath:
+		case T_MergeJoin:
+			op_name = "Merge Join";
+			rows = ((MergePath* )path)->jpath.path.rows;
+			width = ((MergePath* )path)->jpath.path.pathtarget->width;
+			startup_cost = ((MergePath* )path)->jpath.path.startup_cost;
+			total_cost = ((MergePath* )path)->jpath.path.total_cost;
+			inner = path_to_json(((MergePath* )path)->jpath.innerjoinpath, json_doc);
+			outer = path_to_json(((MergePath* )path)->jpath.outerjoinpath, json_doc);
+			yyjson_mut_arr_append(inputs, outer);
+            yyjson_mut_arr_append(inputs, inner);
+		// case T_NestPath:
+		case T_NestLoop:;
+			op_name = "Nested Loop";
+			rows = ((NestPath* )path)->jpath.path.rows;
+			width = ((NestPath* )path)->jpath.path.pathtarget->width;
+			startup_cost = ((NestPath* )path)->jpath.path.startup_cost;
+			total_cost = ((NestPath* )path)->jpath.path.total_cost;
+			inner = path_to_json(((NestPath* )path)->jpath.innerjoinpath, json_doc);
+			outer = path_to_json(((NestPath* )path)->jpath.outerjoinpath, json_doc);
+			yyjson_mut_arr_append(inputs, outer);
+            yyjson_mut_arr_append(inputs, inner);
+			break;
+		// case T_MaterialPath:
+		case T_Material:
+            op_name = "Materialize";
+			rows = path->rows;
+			width = path->pathtarget->width;
+			startup_cost = path->startup_cost;
+			total_cost = path->total_cost;
+			yyjson_mut_val *mat_input = path_to_json(((MaterialPath* )path)->subpath, json_doc);
+            yyjson_mut_arr_append(inputs, mat_input);
+			break;
+		// case T_SortPath:
+		case T_Sort:
+            op_name = "Sort";
+			rows = path->rows;
+			width = path->pathtarget->width;
+			startup_cost = path->startup_cost;
+			total_cost = path->total_cost;
+			yyjson_mut_val *sort_input = path_to_json(((SortPath* )path)->subpath, json_doc);
+            yyjson_mut_arr_append(inputs, sort_input);
+			break;
+		// case T_AggPath:
+		case T_Agg:
+			if (IsA(path, GroupingSetsPath))
+			{
+				op_name = "GroupingSet";
+				rows = ((GroupingSetsPath *)path)->path.rows;
+				width = ((GroupingSetsPath *)path)->path.pathtarget->width;
+				startup_cost = ((GroupingSetsPath *)path)->path.startup_cost;
+				total_cost = ((GroupingSetsPath *)path)->path.total_cost;
+				yyjson_mut_val *input = path_to_json(((GroupingSetsPath* )path)->subpath, json_doc);
+            	yyjson_mut_arr_append(inputs, input);
+			}
+			else
+			{
+				Assert(IsA(path, AggPath));
+				op_name = "Aggregate";
+				rows = path->rows;
+				width = path->pathtarget->width;
+				startup_cost = path->startup_cost;
+				total_cost = path->total_cost;
+				yyjson_mut_val *input = path_to_json(((AggPath* )path)->subpath, json_doc);
+            	yyjson_mut_arr_append(inputs, input);
+			}
+			break;
+		// case T_IncrementalSortPath:
+		// case T_IncrementalSort:
+		// 	op_name = "Incremental Sort";
+		// 	rows = ((IncrementalSortPath *)path)->spath.path.rows;
+		// 	width = ((IncrementalSortPath *)path)->spath.path.pathtarget->width;
+		// 	startup_cost = ((IncrementalSortPath *)path)->spath.path.startup_cost;
+		// 	total_cost = ((IncrementalSortPath *)path)->spath.path.total_cost;
+		// 	yyjson_mut_val *inc_sort_input = path_to_json(((IncrementalSortPath *)path)->spath.subpath, json_doc);
+        //     yyjson_mut_arr_append(inputs, inc_sort_input);
+		// 	break;
+		// case T_GatherPath:
+		case T_Gather:
+			op_name = "Gather";
+			rows = ((GatherPath *)path)->path.rows;
+			width = ((GatherPath *)path)->path.pathtarget->width;
+			startup_cost = ((GatherPath *)path)->path.startup_cost;
+			total_cost = ((GatherPath *)path)->path.total_cost;
+			yyjson_mut_val *gather_input = path_to_json(((GatherPath *)path)->subpath, json_doc);
+			yyjson_mut_arr_append(inputs, gather_input);
+			break;
+		// case T_GatherMergePath:
+		case T_GatherMerge:
+			op_name = "Gather Merge";
+			rows = ((GatherMergePath *)path)->path.rows;
+			width = ((GatherMergePath *)path)->path.pathtarget->width;
+			startup_cost = ((GatherMergePath *)path)->path.startup_cost;
+			total_cost = ((GatherMergePath *)path)->path.total_cost;
+			yyjson_mut_val *gather_merge_input = path_to_json(((GatherMergePath *)path)->subpath, json_doc);
+			yyjson_mut_arr_append(inputs, gather_merge_input);
+			break;
+		// case T_MemoizePath:
+		case T_Memoize:
+			op_name = "Memoize";
+			rows = path->rows;
+			width = path->pathtarget->width;
+			startup_cost = path->startup_cost;
+			total_cost = path->total_cost;
+			yyjson_mut_val *memoize_input = path_to_json(((MemoizePath* )path)->subpath, json_doc);
+			yyjson_mut_arr_append(inputs, memoize_input);
+			break;
+		case T_SampleScan:
+		case T_TidScan:
+		case T_SubqueryScan:
+		case T_FunctionScan:
+		case T_TableFuncScan:
+		case T_ValuesScan:
+		case T_CteScan:
+		case T_WorkTableScan:
+		case T_NamedTuplestoreScan:
+		case T_ForeignScan:
+		case T_CustomScan:
+		case T_Append:
+		case T_MergeAppend:
+		case T_Result:
+		case T_ProjectSet:
+		case T_Unique:
+		case T_Group:
+		case T_WindowAgg:
+		case T_RecursiveUnion:
+		case T_LockRows:
+		case T_ModifyTable:
+		// case T_GatherMerge:
+			elog(WARNING, "unrecognized node type: %d",
+				 (int) path->type);
+			break;
+		default:
+			elog(ERROR, "unrecognized node type: %d",
+				 (int) path->type);
+			break;
+	}
+
+    yyjson_mut_obj_put(op, yyjson_mut_strcpy(json_doc, "Node Type"), yyjson_mut_strcpy(json_doc, op_name));
+	if (yyjson_arr_size(inputs)) {
+    	yyjson_mut_obj_put(op, yyjson_mut_strcpy(json_doc, "Plans"), inputs);
+	}
+    yyjson_mut_obj_put(op, yyjson_mut_strcpy(json_doc, "Plan Rows"), yyjson_mut_real(json_doc, rows));
+    yyjson_mut_obj_put(op, yyjson_mut_strcpy(json_doc, "Plan Width"), yyjson_mut_sint(json_doc, width));
+    yyjson_mut_obj_put(op, yyjson_mut_strcpy(json_doc, "Startup Cost"), yyjson_mut_real(json_doc, startup_cost));
+    yyjson_mut_obj_put(op, yyjson_mut_strcpy(json_doc, "Total Cost"), yyjson_mut_real(json_doc, total_cost));
+
+    return op;
+}
+
+char*
+path_to_str(PlannerGlobal *glob, Path *path)
+{
+	char *plan_str = "";
+    char *op_name;
+	char *table_name = "";
+	double rows;
+	double width;
+	double startup_cost;
+	double total_cost;
+	char *inner = "";
+	char *outer = "";
+	switch (path->pathtype)
+	{
+		case T_SeqScan:
+            op_name = "Seq Scan";
+			rows = path->rows;
+			width = path->pathtarget->width;
+			startup_cost = path->startup_cost;
+			total_cost = path->total_cost;
+			Index seqscan_idx = path->parent->relid;
+			table_name = get_rel_name(rt_fetch(seqscan_idx, glob->finalrtable)->relid);
+            break;
+		// case T_IndexPath:
+		case T_IndexScan:
+            op_name = "Index Scan";
+			rows = path->rows;
+			width = path->pathtarget->width;
+			startup_cost = path->startup_cost;
+			total_cost = path->total_cost;
+			Index indexscan_idx = ((IndexPath *)path)->path.parent->relid;
+			table_name = get_rel_name(rt_fetch(indexscan_idx, glob->finalrtable)->relid);
+            break;
+		case T_IndexOnlyScan:
+			op_name = "Index Only Scan";
+			rows = path->rows;
+			width = path->pathtarget->width;
+			startup_cost = path->startup_cost;
+			total_cost = path->total_cost;
+			Index idxonlyscan_idx = ((IndexPath *)path)->path.parent->relid;
+			table_name = get_rel_name(rt_fetch(idxonlyscan_idx, glob->finalrtable)->relid);
+            break;
+		case T_BitmapHeapScan:
+			op_name = "Bitmap Heap Scan";
+			rows = path->rows;
+			width = path->pathtarget->width;
+			startup_cost = path->startup_cost;
+			total_cost = path->total_cost;
+			Index bit_heapscan_idx = ((BitmapHeapPath *)path)->path.parent->relid;
+			table_name = get_rel_name(rt_fetch(bit_heapscan_idx, glob->finalrtable)->relid);
+            break;
+		case T_HashJoin:
+			op_name = "Hash Join";
+			rows = ((HashPath* )path)->jpath.path.rows;
+			width = ((HashPath* )path)->jpath.path.pathtarget->width;
+			startup_cost = ((HashPath* )path)->jpath.path.startup_cost;
+			total_cost = ((HashPath* )path)->jpath.path.total_cost;
+			inner = path_to_str(glob, ((HashPath* )path)->jpath.innerjoinpath);
+			outer = path_to_str(glob, ((HashPath* )path)->jpath.outerjoinpath);
+		case T_MergeJoin:
+			op_name = "Merge Join";
+			rows = ((MergePath* )path)->jpath.path.rows;
+			width = ((MergePath* )path)->jpath.path.pathtarget->width;
+			startup_cost = ((MergePath* )path)->jpath.path.startup_cost;
+			total_cost = ((MergePath* )path)->jpath.path.total_cost;
+			inner = path_to_str(glob, ((MergePath* )path)->jpath.innerjoinpath);
+			outer = path_to_str(glob, ((MergePath* )path)->jpath.outerjoinpath);
+		case T_NestLoop:;
+			op_name = "Nested Loop";
+			rows = ((NestPath* )path)->jpath.path.rows;
+			width = ((NestPath* )path)->jpath.path.pathtarget->width;
+			startup_cost = ((NestPath* )path)->jpath.path.startup_cost;
+			total_cost = ((NestPath* )path)->jpath.path.total_cost;
+			inner = path_to_str(glob, ((NestPath* )path)->jpath.innerjoinpath);
+			outer = path_to_str(glob, ((NestPath* )path)->jpath.outerjoinpath);
+			break;
+		case T_Material:
+            op_name = "Materialize";
+			rows = path->rows;
+			width = path->pathtarget->width;
+			startup_cost = path->startup_cost;
+			total_cost = path->total_cost;
+			outer = path_to_str(glob, ((MaterialPath* )path)->subpath);
+			break;
+		case T_Sort:
+            op_name = "Sort";
+			rows = path->rows;
+			width = path->pathtarget->width;
+			startup_cost = path->startup_cost;
+			total_cost = path->total_cost;
+			outer = path_to_str(glob, ((SortPath* )path)->subpath);
+		case T_Agg:
+			if (IsA(path, GroupingSetsPath))
+			{
+				op_name = "GroupingSet";
+				rows = ((GroupingSetsPath *)path)->path.rows;
+				width = ((GroupingSetsPath *)path)->path.pathtarget->width;
+				startup_cost = ((GroupingSetsPath *)path)->path.startup_cost;
+				total_cost = ((GroupingSetsPath *)path)->path.total_cost;
+				outer = path_to_str(glob, ((GroupingSetsPath* )path)->subpath);
+			}
+			else
+			{
+				Assert(IsA(path, AggPath));
+				op_name = "Aggregate";
+				rows = path->rows;
+				width = path->pathtarget->width;
+				startup_cost = path->startup_cost;
+				total_cost = path->total_cost;
+				outer = path_to_str(glob, ((AggPath* )path)->subpath);
+			}
+			break;
+		case T_Gather:
+			op_name = "Gather";
+			rows = ((GatherPath *)path)->path.rows;
+			width = ((GatherPath *)path)->path.pathtarget->width;
+			startup_cost = ((GatherPath *)path)->path.startup_cost;
+			total_cost = ((GatherPath *)path)->path.total_cost;
+			outer = path_to_str(glob, ((GatherPath *)path)->subpath);
+			break;
+		case T_GatherMerge:
+			op_name = "Gather Merge";
+			rows = ((GatherMergePath *)path)->path.rows;
+			width = ((GatherMergePath *)path)->path.pathtarget->width;
+			startup_cost = ((GatherMergePath *)path)->path.startup_cost;
+			total_cost = ((GatherMergePath *)path)->path.total_cost;
+			outer = path_to_str(glob, ((GatherMergePath *)path)->subpath);
+			break;
+		case T_Memoize:
+			op_name = "Memoize";
+			rows = path->rows;
+			width = path->pathtarget->width;
+			startup_cost = path->startup_cost;
+			total_cost = path->total_cost;
+			outer = path_to_str(glob, ((MemoizePath* )path)->subpath);
+			break;
+		case T_SampleScan:
+		case T_TidScan:
+		case T_SubqueryScan:
+		case T_FunctionScan:
+		case T_TableFuncScan:
+		case T_ValuesScan:
+		case T_CteScan:
+		case T_WorkTableScan:
+		case T_NamedTuplestoreScan:
+		case T_ForeignScan:
+		case T_CustomScan:
+		case T_Append:
+		case T_MergeAppend:
+		case T_Result:
+		case T_ProjectSet:
+		case T_Unique:
+		case T_Group:
+		case T_WindowAgg:
+		case T_RecursiveUnion:
+		case T_LockRows:
+		case T_ModifyTable:
+			elog(WARNING, "unrecognized node type: %d",
+				 (int) path->type);
+			break;
+		default:
+			elog(ERROR, "unrecognized node type: %d",
+				 (int) path->type);
+			break;
+	}
+
+	char *rows_str = (char *) palloc(100);
+	char *width_str = (char *) palloc(100);
+	char *startup_cost_str = (char *) palloc(100);
+	char *total_cost_str = (char *) palloc(100);
+
+	sprintf(rows_str, "%f", rows);
+	sprintf(width_str, "%f", width);
+	sprintf(startup_cost_str, "%f", startup_cost);
+	sprintf(total_cost_str, "%f", total_cost);
+
+	// FILE *fp;
+	// node type
+	plan_str = concat_str(plan_str, "\"Node Type\": \"");
+	plan_str = concat_str(plan_str, op_name);
+	plan_str = concat_str(plan_str, "\"");
+
+	// relation name
+	if (table_name != "") {
+		plan_str = concat_str(plan_str, ", \"Relation Name\": \"");
+		plan_str = concat_str(plan_str, table_name);
+		plan_str = concat_str(plan_str, "\"");
+	}
+
+	// rows
+	plan_str = concat_str(plan_str, ", \"Plan Rows\": ");
+	plan_str = concat_str(plan_str, rows_str);
+
+	// width
+	plan_str = concat_str(plan_str, ", \"Plan Width\": ");
+	plan_str = concat_str(plan_str, width_str);
+
+	// startup cost
+	plan_str = concat_str(plan_str, ", \"Startup Cost\": ");
+	plan_str = concat_str(plan_str, startup_cost_str);
+
+	// total cost
+	plan_str = concat_str(plan_str, ", \"Total Cost\": ");
+	plan_str = concat_str(plan_str, total_cost_str);
+
+	// inputs
+	if (outer != "") {
+		plan_str = concat_str(plan_str, ", \"Plans\": [{");
+		plan_str = concat_str(plan_str, outer);
+		plan_str = concat_str(plan_str, "}");
+
+		if (inner == "") {
+			plan_str = concat_str(plan_str, "]");
+		}
+	} 
+	
+	if (inner != "") {
+		plan_str = concat_str(plan_str, ", {");
+		plan_str = concat_str(plan_str, inner);
+		plan_str = concat_str(plan_str, "}");
+		plan_str = concat_str(plan_str, "]");
+	}
+	
+    return plan_str;
+}
+
 void 
 add_join_input_tables(PlannerInfo *root, Path *path, RelatedTable *related_table)
 {
