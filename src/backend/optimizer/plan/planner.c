@@ -591,7 +591,7 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 		end_t = tv.tv_sec + (tv.tv_usec / 1e6);
 		total_generate_plan_time = end_t - start_t;		
 
-		fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log_time_stats", "a+");
+		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log_time_stats", "a+");
 		fprintf(fp, "%d, %f\n\n", final_rel->pathlist->length, total_generate_plan_time);
 		fclose(fp);
 
@@ -607,18 +607,18 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 		end_t = tv.tv_sec + (tv.tv_usec / 1e6);
 		total_generate_plan_time = end_t - start_t;
 
-		fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log_time_stats", "a+");
+		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log_time_stats", "a+");
 		fprintf(fp, "%d, %f\n\n", final_rel->pathlist->length, total_generate_plan_time);
 		fclose(fp);
 
-		fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 		fprintf(fp, "CursorOption: %d\n", cursorOptions);
 		fprintf(fp, "There are %d final plans.\n", final_rel->pathlist->length);
 		fclose(fp);	
 		
 		// the selected_idx indicates the index of the best plan for LCM. 
 		gettimeofday(&tv, NULL);
-		fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 		fprintf(fp, "[INFO] standard_planner: start invoke lcm, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
 		fclose(fp);
 		
@@ -628,7 +628,7 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 		// int selected_idx = 0;
 
 		gettimeofday(&tv, NULL);
-		fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 		fprintf(fp, "[INFO] standard_planner: finish invoke lcm, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
 		fclose(fp);
 

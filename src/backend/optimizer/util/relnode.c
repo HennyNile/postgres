@@ -1229,7 +1229,7 @@ fetch_upper_rel(PlannerInfo *root, UpperRelationKind kind, Relids relids)
 			// lql: check the number of candidate complete plans
 			// open a output file
 			FILE *fp;
-			fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+			fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 			fprintf(fp, "UpperRelationKind: %d\n", (int)kind);
 			fprintf(fp, "Number of candidate complete plans: %d\n", upperrel->pathlist->length);
 			fprintf(fp, "Max Number of candidate complete plans: %d\n", upperrel->pathlist->max_length);

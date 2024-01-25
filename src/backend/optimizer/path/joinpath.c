@@ -170,7 +170,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 		int max_path_num = 30;
 		int saved_path_num = 1;
 		int cursorOptions = 2048;
-		int invoke_lcm_least_sub_table_num = 5;
+		int invoke_lcm_least_sub_table_num = 7;
 
 		FILE *fp;
 
@@ -196,7 +196,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 				tmp /= 2;
 			}
 			// FILE *fp;
-			// fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+			// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 			// fprintf(fp, "outerrel relid=%d, sub_table_num=%d, candidate plan num:%d\n", init_relids, sub_table_num, outerrel->pathlist->length);
 			// fclose(fp);
 			if(sub_table_num >= invoke_lcm_least_sub_table_num){
@@ -260,7 +260,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 
 				struct timeval tv;
 				FILE *fp;
-				// fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+				// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 				// gettimeofday(&tv,NULL);
 				// fprintf(fp, "[INFO] add_paths_to_joinrel: start generate plans, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
 				// fclose(fp);
@@ -430,11 +430,11 @@ add_paths_to_joinrel(PlannerInfo *root,
 				// double end_t = tv.tv_sec + (tv.tv_usec / 1e6);
 				// total_generate_plan_time = end_t - start_t;
 
-				// fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log_time_stats", "a+");
+				// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log_time_stats", "a+");
 				// fprintf(fp, "%d, %f\n", outerrel->pathlist->length, total_generate_plan_time);
 				// fclose(fp);
 
-				// fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+				// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 				// gettimeofday(&tv,NULL);
 				// fprintf(fp, "[INFO] add_paths_to_joinrel: finish generate plans, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
 				// fclose(fp);
@@ -445,7 +445,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 				// invoke lcm to selected plan
 				int *selected_plan_idxes = (int*)palloc(saved_path_num * sizeof(int));
 				
-				fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+				fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 				gettimeofday(&tv,NULL);
 				fprintf(fp, "[INFO] add_paths_to_joinrel: start invoke lcm, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
 				fclose(fp);
@@ -457,7 +457,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 				lcm_select_nfirst_best_paths(root->glob, outerrel->pathlist, outerrel->pathlist->length, saved_path_num, selected_plan_idxes);
 
 				gettimeofday(&tv,NULL);
-				fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+				fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 				fprintf(fp, "[INFO] add_paths_to_joinrel: finish invoke lcm, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
 				fclose(fp);
 
@@ -478,7 +478,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 					}					
 				}
 
-				fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+				fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 				fprintf(fp, "[INFO] add_paths_to_joinrel: after selecting path, outerrel path length: %d\n", outerrel->pathlist->length);
 				fclose(fp);
 
@@ -517,7 +517,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 			}
 			FILE *fp;
 			struct timeval tv;
-			// fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+			// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 			// fprintf(fp, "inner relid=%d, sub_table_num=%d, candidate plan num:%d\n", init_relids, sub_table_num, innerrel->pathlist->length);
 			// fclose(fp);
 			if(sub_table_num >= invoke_lcm_least_sub_table_num){
@@ -581,7 +581,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 
 				// struct timeval tv;
 				// FILE *fp;
-				// fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+				// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 				// gettimeofday(&tv,NULL);
 				// fprintf(fp, "[INFO] add_paths_to_joinrel: start generate plans, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
 				// fclose(fp);
@@ -754,11 +754,11 @@ add_paths_to_joinrel(PlannerInfo *root,
 				// end_t = tv.tv_sec + (tv.tv_usec / 1e6);
 				// total_generate_plan_time = end_t - start_t;
 
-				// fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log_time_stats", "a+");
+				// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log_time_stats", "a+");
 				// fprintf(fp, "%d, %f\n", innerrel->pathlist->length, total_generate_plan_time);
 				// fclose(fp);
 
-				// fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+				// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 				// gettimeofday(&tv,NULL);
 				// fprintf(fp, "[INFO] add_paths_to_joinrel: finish generate plans, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
 				// fclose(fp);
@@ -768,7 +768,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 
 				// invoke lcm to selected plan
 				int *selected_plan_idxes = (int*)palloc(saved_path_num * sizeof(int));
-				fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+				fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 				gettimeofday(&tv,NULL);
 				fprintf(fp, "[INFO] add_paths_to_joinrel: start invoke lcm, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
 				fclose(fp);
@@ -779,7 +779,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 				// 	selected_plan_idxes[i] = i;
 
 				gettimeofday(&tv,NULL);
-				fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+				fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 				fprintf(fp, "[INFO] add_paths_to_joinrel: finish invoke lcm, time = %f\n", tv.tv_sec + (tv.tv_usec / 1e6));
 				fclose(fp);
 
@@ -802,7 +802,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 					}
 				}
 
-				fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+				fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 				fprintf(fp, "[INFO] add_paths_to_joinrel: after selecting path, innerrel path length: %d\n", innerrel->pathlist->length);
 				fclose(fp);
 
@@ -824,7 +824,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 		// if(truncated) 
 		// {
 		// 	FILE *fp;
-		// 	fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+		// 	fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 		// 	fprintf(fp, "[INFO] add_paths_to_joinrel: truncate paths of son rels\n");
 		// 	int relid;
 		// 	int wordnum;
@@ -1050,7 +1050,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 		set_join_pathlist_hook(root, joinrel, outerrel, innerrel,
 							   jointype, &extra);
 	// FILE *fp;
-	// fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+	// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 	// Relids rel_relids = joinrel->relids;
     // int relids_nwords = rel_relids->nwords;
 	// int wordnum;

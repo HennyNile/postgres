@@ -28,7 +28,7 @@ int lcm_select_best_plan(PlannedStmt **candidate_plans, int nplans)
 
 	// write the selected result to the log file
 	FILE *fp;
-	fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+	fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 	fprintf(fp, "\nThe index of selected plan is %d\n", selected_plan_index);
 	fclose(fp);
 
@@ -45,7 +45,7 @@ int lcm_select_best_path(PlannerGlobal *glob, List *pathlist, int nplans)
 
 	// write the selected result to the log file
 	FILE *fp;
-	fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+	fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 	fprintf(fp, "\nThe index of selected plan is %d\n", selected_plan_index);
 	fclose(fp);
 
@@ -144,7 +144,7 @@ void lcm_select_nfirst_best_paths(PlannerGlobal *glob, List *pathlist, int nplan
 	}
 	gettimeofday(&tv, NULL);
 	double end_time = tv.tv_sec + (tv.tv_usec / 1e6);
-	fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+	fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 	fprintf(fp, "[INFO] lcm_select_nfirst_best_paths: %d plans, time = %f\n", nplans, end_time-start_time);
 	fclose(fp);
 	json_plans_str = concat_str(json_plans_str, MSG_END_FLAG);											
@@ -175,7 +175,7 @@ static void invoke_lcm_select_nfirst_plan(char* json_plans_str, int nfirst, int*
 		close(conn_fd);
 		elog(ERROR, "fail to get score from LCM");
 		FILE *fp;
-		fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 		fprintf(fp, "[INFO] invoke_lcm_select_nfirst_plan: get error msg\n");
 		fclose(fp);
 	}
@@ -186,7 +186,7 @@ static void invoke_lcm_select_nfirst_plan(char* json_plans_str, int nfirst, int*
 		const char delimiter = ',';
 		char *selected_plan_idx = strtok(selected_plan_idxes_str, &delimiter);
 		FILE *fp;
-		fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 		fprintf(fp, "[INFO] invoke_lcm_select_nfirst_plan: selected plan idxes: %s\n", selected_plan_idxes_str);
 		int idx = 0;
 		while (selected_plan_idx != NULL) {
@@ -223,13 +223,13 @@ void encode_path(PlannerGlobal *glob, Path* path, int depth)
 		case T_NamedTuplestoreScan:
 		case T_ForeignScan:
 		case T_CustomScan:
-			fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+			fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 			print_blank(depth, fp);
 			fprintf(fp, "%s, rows=%f, width=%d\n", "Scan", path->rows, path->pathtarget->width);
 			fclose(fp);
 			break;
 		case T_HashJoin:
-			fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+			fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 			print_blank(depth, fp);
 			fprintf(fp, "%s, rows=%f, width=%d\n", "HashJoin", ((HashPath* )path)->jpath.path.rows,((HashPath* )path)->jpath.path.pathtarget->width);
 			fclose(fp);
@@ -237,7 +237,7 @@ void encode_path(PlannerGlobal *glob, Path* path, int depth)
 			encode_path(glob, ((HashPath* )path)->jpath.innerjoinpath, depth+1);
 			break;
 		case T_MergeJoin:
-			fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+			fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 			print_blank(depth, fp);
 			fprintf(fp, "%s, rows=%f, width=%d\n", "MergeJoin", ((MergePath* )path)->jpath.path.rows,((MergePath* )path)->jpath.path.pathtarget->width);
 			fclose(fp);
@@ -245,7 +245,7 @@ void encode_path(PlannerGlobal *glob, Path* path, int depth)
 			encode_path(glob, ((MergePath* )path)->jpath.innerjoinpath, depth+1);
 			break;
 		case T_NestLoop:
-			fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+			fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 			print_blank(depth, fp);
 			fprintf(fp, "%s, rows=%f, width=%d\n", "NestedLoopJoin", ((NestPath* )path)->jpath.path.rows,((NestPath* )path)->jpath.path.pathtarget->width);
 			fclose(fp);
@@ -253,35 +253,35 @@ void encode_path(PlannerGlobal *glob, Path* path, int depth)
 			encode_path(glob, ((NestPath* )path)->jpath.innerjoinpath, depth+1);
 			break;
 		case T_Material:
-			fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+			fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 			print_blank(depth, fp);
 			fprintf(fp, "%s, rows=%f, width=%d\n", "Materialize", path->rows, path->pathtarget->width);
 			fclose(fp);
 			encode_path(glob, ((MaterialPath* )path)->subpath, depth+1);
 			break;
 		case T_Memoize:
-			fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+			fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 			print_blank(depth, fp);
 			fprintf(fp, "%s, rows=%f, width=%d\n", "Memoize", path->rows, path->pathtarget->width);
 			fclose(fp);
 			encode_path(glob, ((MemoizePath* )path)->subpath, depth+1);
 			break;
 		case T_Gather:
-			fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+			fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 			print_blank(depth, fp);
 			fprintf(fp, "%s, rows=%f, width=%d\n", "Gather", ((GatherPath *)path)->path.rows, ((GatherPath *)path)->path.pathtarget->width);
 			fclose(fp);
 			encode_path(glob, ((GatherPath* )path)->subpath, depth+1);
 			break;
 		case T_Sort:
-			fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+			fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 			print_blank(depth, fp);
 			fprintf(fp, "%s, rows=%f, width=%d\n", "Sort", path->rows, path->pathtarget->width);
 			fclose(fp);
 			encode_path(glob, ((SortPath* )path)->subpath, depth+1);
 			break;
 		case T_Group:
-			fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+			fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 			print_blank(depth, fp);
 			fprintf(fp, "%s, rows=%f, width=%d\n", "Group", path->rows, path->pathtarget->width);
 			fclose(fp);
@@ -290,7 +290,7 @@ void encode_path(PlannerGlobal *glob, Path* path, int depth)
 		case T_Agg:
 			if (IsA(path, GroupingSetsPath))
 			{
-				fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+				fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 				print_blank(depth, fp);
 				fprintf(fp, "%s, rows=%f, width=%d\n", "GroupingSet", ((GroupingSetsPath *)path)->path.rows, ((GroupingSetsPath *)path)->path.pathtarget->width);
 				fclose(fp);
@@ -299,7 +299,7 @@ void encode_path(PlannerGlobal *glob, Path* path, int depth)
 			else
 			{
 				Assert(IsA(path, AggPath));
-				fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+				fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 				print_blank(depth, fp);
 				fprintf(fp, "%s, rows=%f, width=%d\n", "Aggregate", path->rows, path->pathtarget->width);
 				fclose(fp);
@@ -307,7 +307,7 @@ void encode_path(PlannerGlobal *glob, Path* path, int depth)
 			}
 			break;
 		case T_GatherMerge:
-			fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+			fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 			print_blank(depth, fp);
 			fprintf(fp, "%s, rows=%f, width=%d\n", "GatherMerge", ((GatherMergePath *)path)->path.rows, ((GatherMergePath *)path)->path.pathtarget->width);
 			fclose(fp);
@@ -321,7 +321,7 @@ void encode_path(PlannerGlobal *glob, Path* path, int depth)
 
 	if(depth == 0)
 	{
-		fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 		fprintf(fp, "%s", path_to_str(glob, path));
 		fclose(fp);
 	}

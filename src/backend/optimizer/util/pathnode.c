@@ -634,10 +634,10 @@ add_path(RelOptInfo *parent_rel, Path *new_path)
 	// if (lcm_enabled && parent_rel->reloptkind != RELOPT_JOINREL) {
 	// 	if (list_length(parent_rel->pathlist) > 100) {
 	// 		FILE *fp;
-	// 		fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+	// 		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 	// 		fprintf(fp, "[INFO] add_path: check node relkind %d\n", parent_rel->reloptkind);
 	// 		fclose(fp);
-	// 		fp = fopen("/home/qilong/workspace/qilong/LBO/lql_log", "a+");
+	// 		fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 	// 		Relids rel_relids = parent_rel->relids;
 	// 		int relids_nwords = rel_relids->nwords;
 	// 		int wordnum;
