@@ -1997,6 +1997,17 @@ struct config_bool ConfigureNamesBool[] =
 		NULL, NULL, NULL
 	},
 
+	{
+		{"enable_card_swing", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Enables cardinality swing"),
+			NULL,
+			GUC_EXPLAIN
+		},
+		&enable_card_swing,
+		false,
+		NULL, NULL, NULL
+	},
+
 	/* End-of-list marker */
 	{
 		{NULL, 0, 0, NULL, NULL}, NULL, false, NULL, NULL, NULL
@@ -3502,6 +3513,28 @@ struct config_int ConfigureNamesInt[] =
 		},
 		&scram_sha_256_iterations,
 		SCRAM_SHA_256_DEFAULT_ITERATIONS, 1, INT_MAX,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"card_swing_factor", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Sets the factor of cardinality swing"),
+			NULL,
+			GUC_REPORT
+		},
+		&card_swing_factor,
+		1, 0, INT_MAX,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"card_swing_table_num", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Sets the table num of join which is going to swing card"),
+			NULL,
+			GUC_REPORT
+		},
+		&card_swing_table_num,
+		0, 0, INT_MAX,
 		NULL, NULL, NULL
 	},
 

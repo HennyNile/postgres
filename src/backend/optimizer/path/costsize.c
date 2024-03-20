@@ -153,6 +153,9 @@ bool		enable_parallel_hash = true;
 bool		enable_partition_pruning = true;
 bool		enable_presorted_aggregate = true;
 bool		enable_async_append = true;
+bool		enable_card_swing = false;
+int 		card_swing_factor = 1;
+int 		card_swing_table_num = 0;
 
 typedef struct
 {
@@ -5090,6 +5093,33 @@ set_joinrel_size_estimates(PlannerInfo *root, RelOptInfo *rel,
 										   inner_rel->rows,
 										   sjinfo,
 										   restrictlist);
+	
+	// swing card if enable_card_swing is enabled
+	if(enable_card_swing)
+	{
+		int relids = (int) rel->relids->words[0];
+		int tmp = 2;
+		int sub_table_num = 0;
+		while(tmp * 2 <= relids)
+			tmp = 2 * tmp;
+		while(relids > 0 && tmp > 1) {
+			if(tmp <= relids)
+			{
+				sub_table_num += 1;
+				relids -= tmp;
+			} 
+			tmp /= 2;
+		}
+		if(sub_table_num==card_swing_table_num)
+		{
+			rel->rows = rel->rows * card_swing_factor;
+		}
+
+		FILE *fp;
+		fp = fopen("/ssd_workspace/qilong/runzhong_Cat/pg_log", "a+");
+		fprintf(fp, "rel relid=%d, sub_table_num=%d", relids, sub_table_num);
+		fclose(fp);
+	}
 }
 
 /*
