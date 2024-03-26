@@ -168,9 +168,10 @@ add_paths_to_joinrel(PlannerInfo *root,
 		int outerrel_init_path_num = -1;
 		int innerrel_init_path_num = -1;
 		int max_path_num = 30;
-		int saved_path_num = 1;
+		int saved_path_num = 5;
 		int cursorOptions = 2048;
-		int invoke_lcm_least_sub_table_num = 7;
+		int invoke_lcm_least_sub_table_num = 5;
+		int invoke_lcm_most_sub_table_num = 8;
 
 		FILE *fp;
 
@@ -199,7 +200,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 			// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 			// fprintf(fp, "outerrel relid=%d, sub_table_num=%d, candidate plan num:%d\n", init_relids, sub_table_num, outerrel->pathlist->length);
 			// fclose(fp);
-			if(sub_table_num >= invoke_lcm_least_sub_table_num){
+			if(sub_table_num >= invoke_lcm_least_sub_table_num && sub_table_num <= invoke_lcm_most_sub_table_num){
 				outerrel_init_path_num = outerrel->pathlist->length;
 
 				// first utilze PG's CM to filter plans
@@ -520,7 +521,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 			// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 			// fprintf(fp, "inner relid=%d, sub_table_num=%d, candidate plan num:%d\n", init_relids, sub_table_num, innerrel->pathlist->length);
 			// fclose(fp);
-			if(sub_table_num >= invoke_lcm_least_sub_table_num){
+			if(sub_table_num >= invoke_lcm_least_sub_table_num && sub_table_num <= invoke_lcm_most_sub_table_num){
 				innerrel_init_path_num = innerrel->pathlist->length;
 
 				// first utilze PG's CM to filter plans
