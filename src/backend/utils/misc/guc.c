@@ -1023,6 +1023,36 @@ static struct config_bool ConfigureNamesBool[] =
 		NULL, NULL, NULL
 	},
 	{
+		{"enable_save_root_joinorder_candidate_plan", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Force the planner save all candidate plans for root plan and invole lcm to select"),
+			NULL,
+			GUC_EXPLAIN
+		},
+		&enable_save_root_joinorder_candidate_plan,
+		false,
+		NULL, NULL, NULL
+	},
+	{
+		{"enable_wave_card", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("enable the planner to wave the cardinality, Lero's plans"),
+			NULL,
+			GUC_EXPLAIN
+		},
+		&enable_wave_card,
+		false,
+		NULL, NULL, NULL
+	},
+	{
+        {"enable_truth_card", PGC_USERSET, RESOURCES_ASYNCHRONOUS,
+         gettext_noop("Enable feeding truth."),
+         NULL,
+         1
+        },
+        &enable_truth_card,
+        false,
+        NULL, NULL, NULL
+    },
+	{
 		{"enable_seqscan", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("Enables the planner's use of sequential-scan plans."),
 			NULL,
@@ -2191,6 +2221,36 @@ static struct config_bool ConfigureNamesBool[] =
 
 static struct config_int ConfigureNamesInt[] =
 {
+	{
+        {"benchmark", PGC_USERSET, RESOURCES_ASYNCHRONOUS,
+         gettext_noop("The benchmark of query."),
+         NULL,
+         1
+        },
+        &benchmark,
+        0, 0, 10000,
+        NULL, NULL, NULL
+    },
+    {
+        {"query_order", PGC_USERSET, RESOURCES_ASYNCHRONOUS,
+            gettext_noop("The order of query to be run."),
+            NULL,
+            1
+        },
+        &query_order,
+        0, 0, 10000,
+        NULL, NULL, NULL
+    },
+	{
+        {"wave_card_table_num", PGC_USERSET, RESOURCES_ASYNCHRONOUS,
+         gettext_noop("The table number of join whose card is to be waved."),
+         NULL,
+         1
+        },
+        &wave_card_table_num,
+        0, 0, 10000,
+        NULL, NULL, NULL
+    },
 	{
 		{"archive_timeout", PGC_SIGHUP, WAL_ARCHIVING,
 			gettext_noop("Sets the amount of time to wait before forcing a "
@@ -3942,6 +4002,16 @@ static struct config_real ConfigureNamesReal[] =
 		0.0, 0.0, 1.0,
 		NULL, NULL, NULL
 	},
+	{
+        {"wave_card_factor", PGC_USERSET, RESOURCES_ASYNCHRONOUS,
+         gettext_noop("The factor of card wave."),
+         NULL,
+         1
+        },
+        &wave_card_factor,
+        0, 0, 10000,
+        NULL, NULL, NULL
+    },
 
 	/* End-of-list marker */
 	{

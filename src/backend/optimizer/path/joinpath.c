@@ -157,6 +157,31 @@ add_paths_to_joinrel(PlannerInfo *root,
 	extra.sjinfo = sjinfo;
 	extra.param_source_rels = NULL;
 
+	FILE *fp;
+	List *tmp_list;
+	bool rootrel_candidate = false;
+	if (enable_save_root_joinorder_candidate_plan)
+	{
+		int root_relids = (int) root->all_baserels->words[0];
+		int join_relids = (int) joinrelids->words[0];
+		int outer_relids = (int) outerrel->relids->words[0];
+		int inner_relids = (int) innerrel->relids->words[0];
+		// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+		// fprintf(fp, "root relid=%d, join relid=%d, outerrel relid=%d, innerrel relid=%d\n", root_relids, join_relids, outer_relids, inner_relids);
+		// fprintf(fp, "outerrel candidate plan num: %d, innerrel candidate plan num:%d\n", outerrel->pathlist->length, innerrel->pathlist->length);
+		// fclose(fp);
+		lcm_enabled = false;
+		save_root_joinorder_candidate_plan_finished = false;
+		if(root_relids == join_relids){
+			rootrel_candidate = true;
+			tmp_list = joinrel->pathlist;
+			joinrel->pathlist = NIL;
+		}
+		// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+		// fprintf(fp, "init enable_save_root_joinorder_candidate_plan finished\n");
+		// fclose(fp);
+	}
+	
 	// invoke LCM to filter the paths of sub-rel if there are two much paths for a rel
 	// bool lcm_enabled = true;
 	if (lcm_enabled)
@@ -171,7 +196,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 		int saved_path_num = 5;
 		int cursorOptions = 2048;
 		int invoke_lcm_least_sub_table_num = 5;
-		int invoke_lcm_most_sub_table_num = 8;
+		int invoke_lcm_most_sub_table_num = 4;
 
 		FILE *fp;
 
@@ -455,7 +480,8 @@ add_paths_to_joinrel(PlannerInfo *root,
 				// for(int i=0; i<saved_path_num; i++)
 				// 	selected_plan_idxes[i] = i;
 				// add_rtes_to_flat_rtable(root, false);
-				lcm_select_nfirst_best_paths(root->glob, outerrel->pathlist, outerrel->pathlist->length, saved_path_num, selected_plan_idxes);
+				int selected_plans_num = 0;
+				lcm_select_nfirst_best_paths(root->glob, outerrel->pathlist, outerrel->pathlist->length, saved_path_num, selected_plan_idxes, &selected_plans_num);
 
 				gettimeofday(&tv,NULL);
 				fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
@@ -463,7 +489,13 @@ add_paths_to_joinrel(PlannerInfo *root,
 				fclose(fp);
 
 				// delete not selected plan
-				int selected_plan_idx = saved_path_num - 1;
+				// int selected_plan_idx = saved_path_num - 1;
+				if(selected_plans_num == 0)
+				{
+					selected_plans_num = 1;
+					selected_plan_idxes[0] = 0;
+				}
+				int selected_plan_idx = selected_plans_num - 1;
 				for(int i=outerrel->pathlist->length-1; i>=0; i--)
 				{
 					if(selected_plan_idx >= 0)
@@ -775,7 +807,8 @@ add_paths_to_joinrel(PlannerInfo *root,
 				fclose(fp);
 				
 				// lcm_select_nfirst_best_plans(results, innerrel->pathlist->length, saved_path_num, selected_plan_idxes);
-				lcm_select_nfirst_best_paths(root->glob, innerrel->pathlist, innerrel->pathlist->length, saved_path_num, selected_plan_idxes);
+				int selected_plans_num = 0;
+				lcm_select_nfirst_best_paths(root->glob, innerrel->pathlist, innerrel->pathlist->length, saved_path_num, selected_plan_idxes, &selected_plans_num);
 				// for(int i=0; i<saved_path_num; i++)
 				// 	selected_plan_idxes[i] = i;
 
@@ -785,7 +818,13 @@ add_paths_to_joinrel(PlannerInfo *root,
 				fclose(fp);
 
 				// delete not selected plan
-				int selected_plan_idx = saved_path_num - 1;
+				if(selected_plans_num==0)
+				{
+					selected_plans_num = 1;
+					selected_plan_idxes[0] = 0;
+				}
+				int selected_plan_idx = selected_plans_num - 1;
+				// int selected_plan_idx = saved_path_num - 1;
 				for(int i=innerrel->pathlist->length-1; i>=0; i--)
 				{
 					if(selected_plan_idx >= 0)
@@ -914,7 +953,7 @@ add_paths_to_joinrel(PlannerInfo *root,
 													false);
 			break;
 	}
-
+	
 	/*
 	 * Find potential mergejoin clauses.  We can skip this if we are not
 	 * interested in doing a mergejoin.  However, mergejoin may be our only
@@ -1050,19 +1089,47 @@ add_paths_to_joinrel(PlannerInfo *root,
 	if (set_join_pathlist_hook)
 		set_join_pathlist_hook(root, joinrel, outerrel, innerrel,
 							   jointype, &extra);
-	// FILE *fp;
+
+	if(enable_save_root_joinorder_candidate_plan && rootrel_candidate)
+	{	
+		// if (tmp_list == NIL) {
+		// 	fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+		// 	fprintf(fp, "merge old paths and new paths, new paths num = %d\n", joinrel->pathlist->length);
+		// 	fclose(fp);
+		// }
+		// else {
+		// 	fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+		// 	fprintf(fp, "merge old paths and new paths, new paths num = %d, old paths num = %d\n", joinrel->pathlist->length, tmp_list->length);
+		// 	fclose(fp);
+		// }	
+		
+		if (tmp_list != NIL) {
+			const ListCell *cell;
+			foreach(cell, joinrel->pathlist)
+			{
+				tmp_list = lappend(tmp_list, lfirst(cell));
+			}
+			// List *new_list = list_union(tmp_list, joinrel->pathlist);
+			// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+			// fprintf(fp, "mrege paths finsihed\n");
+			// fclose(fp);
+			list_free(joinrel->pathlist);
+			// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+			// fprintf(fp, "free new paths finished\n");
+			// fclose(fp);
+			joinrel->pathlist = tmp_list;
+		}
+	} 
+	else {
+		if (enable_save_root_joinorder_candidate_plan)
+		{
+			list_truncate(joinrel->pathlist, 1);
+		}
+	}
+
 	// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
-	// Relids rel_relids = joinrel->relids;
-    // int relids_nwords = rel_relids->nwords;
-	// int wordnum;
-    // for(wordnum = 0; wordnum < relids_nwords; wordnum++)
-    // {
-    //     bitmapword w = rel_relids->words[wordnum];
-    //     fprintf(fp, "inner_relid %d = %ld\n", wordnum, w);
-    // }
 	// fprintf(fp, "Number of candidate join paths: %d\n", joinrel->pathlist->length);
-	// fprintf(fp, "Max Number of candidate join paths: %d\n", joinrel->pathlist->max_length);
-	// fclose(fp);	
+	// fclose(fp);
 }
 
 /*

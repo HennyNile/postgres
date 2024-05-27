@@ -93,6 +93,7 @@
 #include "optimizer/plancat.h"
 #include "optimizer/planmain.h"
 #include "optimizer/restrictinfo.h"
+#include "optimizer/cardprovider.h"
 #include "parser/parsetree.h"
 #include "utils/lsyscache.h"
 #include "utils/selfuncs.h"
@@ -4975,14 +4976,39 @@ set_baserel_size_estimates(PlannerInfo *root, RelOptInfo *rel)
 	/* Should only be applied to base relations */
 	Assert(rel->relid > 0);
 
-	nrows = rel->tuples *
-		clauselist_selectivity(root,
-							   rel->baserestrictinfo,
-							   0,
-							   JOIN_INNER,
-							   NULL);
+	FILE* fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+	fprintf(fp, "baserel card estimate\n");
+	fclose(fp);
+    
+	if(enable_truth_card) {
+		int total_relids = (int)rel->relids->words[0];
+        nrows = get_truth_cardinality(total_relids);
+    } else {
+		nrows = rel->tuples *
+			clauselist_selectivity(root,
+								rel->baserestrictinfo,
+								0,
+								JOIN_INNER,
+								NULL);
+		if (enable_wave_card) {
+			int total_relids = (int)rel->relids->words[0];
+			int table_num = 1;
+			FILE *fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+			fprintf(fp, "total relids: %d, table num: %d, initial card: %f, wave_card_table_num=%d, wave_card_factor=%f\n", total_relids, table_num, nrows, wave_card_table_num, wave_card_factor);
+			if(wave_card_table_num == table_num) {
+				nrows = nrows * wave_card_factor;
+				fprintf(fp, "total relids: %d, table num: %d, waved card: %f\n", total_relids, table_num, nrows);
+			}
+			fclose(fp);
+		}
+    }
 
-	rel->rows = clamp_row_est(nrows);
+	fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+	fprintf(fp, "baserel card estimate finished\n");
+	fclose(fp);
+
+    rel->rows = nrows;
+//	rel->rows = clamp_row_est(nrows);
 
 	cost_qual_eval(&rel->baserestrictcost, rel->baserestrictinfo, root);
 
@@ -5053,7 +5079,23 @@ set_joinrel_size_estimates(PlannerInfo *root, RelOptInfo *rel,
 						   SpecialJoinInfo *sjinfo,
 						   List *restrictlist)
 {
-	rel->rows = calc_joinrel_size_estimate(root,
+
+    double nrows;
+
+	FILE* fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+	fprintf(fp, "join card estimate\n");
+	fclose(fp);
+
+    if(enable_truth_card) {
+        int outer_total_relids = outer_rel->relids->words[0];
+        int inner_total_relids = inner_rel->relids->words[0];
+        int total_relids = outer_total_relids + inner_total_relids;
+        nrows = get_truth_cardinality(total_relids);
+        // avoid all cartesian product joins
+        if(nrows==-1)
+            nrows = MAXIMUM_ROWCOUNT;
+    } else {
+		nrows = calc_joinrel_size_estimate(root,
 										   rel,
 										   outer_rel,
 										   inner_rel,
@@ -5061,6 +5103,29 @@ set_joinrel_size_estimates(PlannerInfo *root, RelOptInfo *rel,
 										   inner_rel->rows,
 										   sjinfo,
 										   restrictlist);
+		
+		if (enable_wave_card) {
+			int outer_total_relids = outer_rel->relids->words[0];
+			int inner_total_relids = inner_rel->relids->words[0];
+			int total_relids = outer_total_relids + inner_total_relids;
+			int table_num = __builtin_popcount(total_relids);
+
+			FILE *fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+			fprintf(fp, "total relids: %d, table num: %d, initial card: %f, wave_card_table_num=%d, wave_card_factor=%f\n", total_relids, table_num, nrows, wave_card_table_num, wave_card_factor);
+			if(wave_card_table_num == table_num) {
+				nrows = nrows * wave_card_factor;
+				fprintf(fp, "total relids: %d, table num: %d, waved card: %f\n", total_relids, table_num, nrows);
+			}
+			fclose(fp);
+		}
+	}
+
+	fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+	fprintf(fp, "baserel card estimate finished.\n");
+	fclose(fp);
+        
+    rel->rows = nrows;
+//    rel->rows = clamp_row_est(nrows);
 }
 
 /*

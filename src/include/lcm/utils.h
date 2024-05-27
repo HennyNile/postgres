@@ -24,6 +24,7 @@
 #define MSG_FINISH "finish"
 #define MSG_PLAN_IDX "selected_plan_idx"
 #define MSG_NFIRST_PLAN_IDX "selected_plan_idxes"
+#define MSG_PLAN_NUM "selected_plan_num"
 #define MSG_END_FLAG "*LCM_END*"
 #define MSG_SPLIT_FLAG "*LCM_SPLIT*"
 
@@ -62,5 +63,20 @@ path_to_str(PlannerGlobal *glob, Path *path);
 
 extern void 
 add_join_input_tables(PlannerInfo *root, Path *path, RelatedTable *related_table);
+
+typedef struct string_builder{
+	char* data;
+	size_t len;
+	size_t cap;
+} string_builder;
+
+extern void 
+string_builder_init(string_builder* self);
+
+extern void
+string_builder_destroy(string_builder* self);
+
+extern void 
+string_builder_append(string_builder* self, const char* append);
 
 #endif

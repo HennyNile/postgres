@@ -3442,6 +3442,9 @@ standard_join_search(PlannerInfo *root, int levels_needed, List *initial_rels)
 
 	root->join_rel_level = NULL;
 
+	if (enable_save_root_joinorder_candidate_plan)
+		save_root_joinorder_candidate_plan_finished = true;
+
 	return rel;
 }
 

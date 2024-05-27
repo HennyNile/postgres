@@ -152,4 +152,44 @@ int64		VacuumPageDirty = 0;
 int			VacuumCostBalance = 0;	/* working state for vacuum */
 bool		VacuumCostActive = false;
 
+// The following variables are customized by the user.
+
+/*
+ * These three variables are added to map newly added config variables.
+ * enable_truth_card enables feeding truth cardinality for scan and join
+ * operator, benchmark represents the running benchmark, 1 means 6 join in IMDB,
+ * query_order is the order of query in the benchmark.
+ *
+ * */
+bool        enable_truth_card = false;
+int         benchmark = 0;
+int         query_order = 0;
+
+/*
+ * These variables are added to map newly added config variables.
+ * enable_lcm enables to utilize LCM algorithm to generate join order,
+ *
+ * */
 bool		lcm_enabled = false;
+
+/*
+ * These variables are added to map newly added config variables.
+ * enable_save_root_joinorder_candidate_plan enables to save the candidate plan
+ * for root join order, save_root_joinorder_candidate_plan_finished indicates
+ * whether the candidate plan has been saved.
+ *
+ * */
+bool        enable_save_root_joinorder_candidate_plan = false;
+bool        save_root_joinorder_candidate_plan_finished = false;
+
+/*
+ * These variables are added to map newly added config variables.
+ * enable_wave_card enables to feed wave cardinality for scan and join
+ * operator, enable_wave_card indicates whether to enable wave cardinality,
+ * wave_card_table_num indicates the number of tables in the wave cardinality
+ * table, wave_card_factor indicates the factor of wave cardinality.
+ *
+ * */
+bool        enable_wave_card = false;
+int         wave_card_table_num = 0;
+double      wave_card_factor = 1;

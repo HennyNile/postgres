@@ -59,6 +59,35 @@ write_all_to_socket(int conn_fd, const char* str)
   }
 }
 
+void string_builder_init(string_builder* self) {
+	self->data = (char*)palloc(10);
+	self->len = 0;
+	self->cap = 10;
+	self->data[0] = '\0';
+}
+
+void string_builder_destroy(string_builder* self) {
+	pfree(self->data);
+}
+
+void string_builder_append(string_builder* self, const char* append) {
+	size_t append_len = strlen(append);
+	size_t new_len = self->len + append_len;
+	size_t new_cap = self->cap;
+	while (new_cap < new_len + 1) {
+		new_cap *= 2;
+	}
+	if (new_cap != self->cap) {
+		char* new_data = (char*) palloc(new_cap);
+		memcpy(new_data, self->data, self->len);
+		pfree(self->data);
+		self->data = new_data;
+		self->cap = new_cap;
+	}
+	memcpy(self->data + self->len, append, append_len + 1);
+	self->len = new_len;
+}
+
 char*
 concat_str(char* a, char *b)
 {
@@ -553,15 +582,23 @@ path_to_json(Path *path, yyjson_mut_doc *json_doc)
 char*
 path_to_str(PlannerGlobal *glob, Path *path)
 {
-	char *plan_str = "";
     char *op_name;
 	char *table_name = "";
+	char *alias_name = "";
 	double rows;
 	double width;
 	double startup_cost;
 	double total_cost;
 	char *inner = "";
 	char *outer = "";
+	FILE *fp;
+	string_builder strb;
+	string_builder_init(&strb);
+
+	// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+	// fprintf(fp, "[INFO] path_to_str: contract info start, node type: %d\n", path->pathtype);
+	// fclose(fp);
+
 	switch (path->pathtype)
 	{
 		case T_SeqScan:
@@ -572,6 +609,7 @@ path_to_str(PlannerGlobal *glob, Path *path)
 			total_cost = path->total_cost;
 			Index seqscan_idx = path->parent->relid;
 			table_name = get_rel_name(rt_fetch(seqscan_idx, glob->finalrtable)->relid);
+			alias_name = rt_fetch(seqscan_idx, glob->finalrtable)->eref->aliasname;
             break;
 		// case T_IndexPath:
 		case T_IndexScan:
@@ -582,7 +620,8 @@ path_to_str(PlannerGlobal *glob, Path *path)
 			total_cost = path->total_cost;
 			Index indexscan_idx = ((IndexPath *)path)->path.parent->relid;
 			table_name = get_rel_name(rt_fetch(indexscan_idx, glob->finalrtable)->relid);
-            break;
+            alias_name = rt_fetch(indexscan_idx, glob->finalrtable)->eref->aliasname;
+			break;
 		case T_IndexOnlyScan:
 			op_name = "Index Only Scan";
 			rows = path->rows;
@@ -591,7 +630,8 @@ path_to_str(PlannerGlobal *glob, Path *path)
 			total_cost = path->total_cost;
 			Index idxonlyscan_idx = ((IndexPath *)path)->path.parent->relid;
 			table_name = get_rel_name(rt_fetch(idxonlyscan_idx, glob->finalrtable)->relid);
-            break;
+            alias_name = rt_fetch(idxonlyscan_idx, glob->finalrtable)->eref->aliasname;
+			break;
 		case T_BitmapHeapScan:
 			op_name = "Bitmap Heap Scan";
 			rows = path->rows;
@@ -600,7 +640,8 @@ path_to_str(PlannerGlobal *glob, Path *path)
 			total_cost = path->total_cost;
 			Index bit_heapscan_idx = ((BitmapHeapPath *)path)->path.parent->relid;
 			table_name = get_rel_name(rt_fetch(bit_heapscan_idx, glob->finalrtable)->relid);
-            break;
+            alias_name = rt_fetch(bit_heapscan_idx, glob->finalrtable)->eref->aliasname;
+			break;
 		case T_HashJoin:
 			op_name = "Hash Join";
 			rows = ((HashPath* )path)->jpath.path.rows;
@@ -711,69 +752,109 @@ path_to_str(PlannerGlobal *glob, Path *path)
 				 (int) path->type);
 			break;
 		default:
-			elog(ERROR, "unrecognized node type: %d",
+			elog(ERROR, "lcm unrecognized node type: %d",
 				 (int) path->type);
 			break;
 	}
+
+	// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+	// fprintf(fp, "[INFO] path_to_str: contract info finished, node type: %d\n", path->pathtype);
+	// fclose(fp);
 
 	char *rows_str = (char *) palloc(100);
 	char *width_str = (char *) palloc(100);
 	char *startup_cost_str = (char *) palloc(100);
 	char *total_cost_str = (char *) palloc(100);
 
-	sprintf(rows_str, "%f", rows);
-	sprintf(width_str, "%f", width);
+	// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+	// fprintf(fp, "[INFO] path_to_str: allocate memory finished, node type: %d\n", path->pathtype);
+	// fclose(fp);
+
+	sprintf(rows_str, "%d", (int)rows);
+	sprintf(width_str, "%d", (int)width);
 	sprintf(startup_cost_str, "%f", startup_cost);
 	sprintf(total_cost_str, "%f", total_cost);
 
-	// FILE *fp;
+	// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+	// fprintf(fp, "[INFO] path_to_str: write values finished, node type: %d\n", path->pathtype);
+	// fclose(fp);
+
 	// node type
-	plan_str = concat_str(plan_str, "\"Node Type\": \"");
-	plan_str = concat_str(plan_str, op_name);
-	plan_str = concat_str(plan_str, "\"");
+	string_builder_append(&strb, "\"Node Type\": \"");
+	string_builder_append(&strb, op_name);
+	string_builder_append(&strb, "\"");
 
 	// relation name
 	if (table_name != "") {
-		plan_str = concat_str(plan_str, ", \"Relation Name\": \"");
-		plan_str = concat_str(plan_str, table_name);
-		plan_str = concat_str(plan_str, "\"");
+		string_builder_append(&strb, ", \"Relation Name\": \"");
+		string_builder_append(&strb, table_name);
+		string_builder_append(&strb, "\"");
+	}
+
+	// alias name
+	if (alias_name != "") {
+		string_builder_append(&strb, ", \"Alias\": \"");
+		string_builder_append(&strb, alias_name);
+		string_builder_append(&strb, "\"");
 	}
 
 	// rows
-	plan_str = concat_str(plan_str, ", \"Plan Rows\": ");
-	plan_str = concat_str(plan_str, rows_str);
+	string_builder_append(&strb, ", \"Plan Rows\": ");
+	string_builder_append(&strb, rows_str);
+	pfree(rows_str);
 
 	// width
-	plan_str = concat_str(plan_str, ", \"Plan Width\": ");
-	plan_str = concat_str(plan_str, width_str);
+	string_builder_append(&strb, ", \"Plan Width\": ");
+	string_builder_append(&strb, width_str);
+	pfree(width_str);
 
 	// startup cost
-	plan_str = concat_str(plan_str, ", \"Startup Cost\": ");
-	plan_str = concat_str(plan_str, startup_cost_str);
+	string_builder_append(&strb, ", \"Startup Cost\": ");
+	string_builder_append(&strb, startup_cost_str);
+	pfree(startup_cost_str);
 
 	// total cost
-	plan_str = concat_str(plan_str, ", \"Total Cost\": ");
-	plan_str = concat_str(plan_str, total_cost_str);
+	string_builder_append(&strb,  ", \"Total Cost\": ");
+	string_builder_append(&strb, total_cost_str);
+	pfree(total_cost_str);
+
+	// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+	// fprintf(fp, "[INFO] path_to_str: append row, width, cost str finished\n");
+	// fclose(fp);
 
 	// inputs
 	if (outer != "") {
-		plan_str = concat_str(plan_str, ", \"Plans\": [{");
-		plan_str = concat_str(plan_str, outer);
-		plan_str = concat_str(plan_str, "}");
+		string_builder_append(&strb, ", \"Plans\": [{");
+		string_builder_append(&strb, outer);
+		string_builder_append(&strb, "}");
+		pfree(outer);
 
 		if (inner == "") {
-			plan_str = concat_str(plan_str, "]");
+			string_builder_append(&strb, "]");
 		}
 	} 
+
+	// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+	// fprintf(fp, "[INFO] path_to_str: append outer str finished\n");
+	// fclose(fp);
 	
 	if (inner != "") {
-		plan_str = concat_str(plan_str, ", {");
-		plan_str = concat_str(plan_str, inner);
-		plan_str = concat_str(plan_str, "}");
-		plan_str = concat_str(plan_str, "]");
+		string_builder_append(&strb, ", {");
+		string_builder_append(&strb, inner);
+		string_builder_append(&strb, "}]");
+		pfree(inner);
 	}
+
+	// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+	// fprintf(fp, "[INFO] path_to_str: generate json string finished\n");
+	// fclose(fp);
 	
-    return plan_str;
+	char *output_str = (char*) palloc(strb.len+1);
+	memcpy(output_str, strb.data, strb.len);
+	output_str[strb.len] = '\0';
+	string_builder_destroy(&strb);
+
+    return output_str;
 }
 
 void 

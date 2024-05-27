@@ -169,6 +169,12 @@ extern PGDLLIMPORT bool IsBinaryUpgrade;
 
 extern PGDLLIMPORT bool ExitOnAnyError;
 
+extern PGDLLIMPORT bool enable_wave_card;
+extern PGDLLIMPORT int wave_card_table_num;
+extern PGDLLIMPORT double wave_card_factor;
+extern PGDLLIMPORT bool enable_truth_card;
+extern PGDLLIMPORT int benchmark;
+extern PGDLLIMPORT int query_order;
 extern PGDLLIMPORT char *DataDir;
 extern PGDLLIMPORT int data_directory_mode;
 

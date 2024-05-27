@@ -10,7 +10,7 @@
 int lcm_server_port = 14567;
 char *lcm_server_host = "localhost";
 
-static void invoke_lcm_select_nfirst_plan(char* json_plans_str, int nfirst, int* nfirst_plans_index);
+static void invoke_lcm_select_nfirst_plan(char* json_plans_str, int nfirst, int* nfirst_plans_index, int* selected_plans_num);
 
 static void print_blank(int depth, FILE* fp)
 {
@@ -39,9 +39,14 @@ int lcm_select_best_path(PlannerGlobal *glob, List *pathlist, int nplans)
 {											
 	// invoke function to send json_plans_str to lcm server
 	int *selected_plan_idxes = (int*)malloc(1 * sizeof(int));
-	lcm_select_nfirst_best_paths(glob, pathlist, nplans, 1, selected_plan_idxes);
+	int selected_plans_num;
+	lcm_select_nfirst_best_paths(glob, pathlist, nplans, 1, selected_plan_idxes, &selected_plans_num);
 
 	int selected_plan_index = selected_plan_idxes[0];
+	if(selected_plans_num == 0)
+	{
+		selected_plan_index = 0;
+	}
 
 	// write the selected result to the log file
 	FILE *fp;
@@ -85,12 +90,13 @@ void lcm_select_nfirst_best_plans(PlannedStmt **candidate_plans, int nplans, int
 	json_plans_str = concat_str(json_plans_str, MSG_END_FLAG);											
 
 	// invoke function to send json_plans_str to lcm server
-	invoke_lcm_select_nfirst_plan(json_plans_str, nfirst, nfirst_plans_index);
+	int selected_plans_num = 0;
+	invoke_lcm_select_nfirst_plan(json_plans_str, nfirst, nfirst_plans_index, &selected_plans_num);
 }
 
-void lcm_select_nfirst_best_paths(PlannerGlobal *glob, List *pathlist, int nplans, int nfirst, int* nfirst_plans_index)
+void lcm_select_nfirst_best_paths(PlannerGlobal *glob, List *pathlist, int nplans, int nfirst, int* nfirst_plans_index, int* selected_plans_num)
 {
-	char *json_plans_str = "";
+	char *json_plans_str;
 	// generate json_plan_str for each plan, then concatenate them
 	
 	ListCell *p1;
@@ -99,47 +105,65 @@ void lcm_select_nfirst_best_paths(PlannerGlobal *glob, List *pathlist, int nplan
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 	double start_time = tv.tv_sec + (tv.tv_usec / 1e6);
+	string_builder strb_root;
+	string_builder_init(&strb_root);
 	foreach (p1, pathlist)
 	{
+		// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+		// fprintf(fp, "[INFO] lcm_select_nfirst_best_paths: plan %d\n", idx + 1);
+		// fclose(fp);
 		Path * current_path = (Path *) lfirst(p1);
-		yyjson_mut_doc *json_doc = yyjson_mut_doc_new(NULL);
-		yyjson_mut_val *root = yyjson_mut_obj(json_doc);
-		yyjson_mut_doc_set_root(json_doc, root);
-		Assert(path != NULL);
-		Assert(json_doc != NULL);
 		char *json = path_to_str(glob, current_path);
 
-		// set plan 
-		json = concat_str("{\"Plan\": {", json);
-		json = concat_str(json, "}");
+		// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+		// fprintf(fp, "[INFO] lcm_select_nfirst_best_paths: plan %d path to str finished\n", idx + 1);
+		// fclose(fp);
+
+		string_builder strb;
+		string_builder_init(&strb);
+
+		// set plan
+		// json = concat_str("{\"Plan\": {", json);
+		// json = concat_str(json, "}");
+		string_builder_append(&strb, "{\"Plan\": {");
+		string_builder_append(&strb, json);
+		string_builder_append(&strb, "}");
+		pfree(json);
 
 		// set msg type flag
-		json = concat_str(json, ", \"");
-		json = concat_str(json, MSG_TYPE);
-		json = concat_str(json, "\": \"");
-		json = concat_str(json, MSG_SELECT_NFIRST);
-		json = concat_str(json, "\"");
+		// json = concat_str(json, ", \"");
+		// json = concat_str(json, MSG_TYPE);
+		// json = concat_str(json, "\": \"");
+		// json = concat_str(json, MSG_SELECT_NFIRST);
+		// json = concat_str(json, "\"");
+		string_builder_append(&strb, ", \"");
+		string_builder_append(&strb, MSG_TYPE);
+		string_builder_append(&strb, "\": \"");
+		string_builder_append(&strb, MSG_SELECT_NFIRST);
+		string_builder_append(&strb, "\"");
 
 		// set nfirst flag
-		json = concat_str(json, ", \"");
-		json = concat_str(json, MSG_SELECT_PLAN_NUM);
-		json = concat_str(json, "\": ");
 		char *nfirst_str = (char *) malloc(100);
 		sprintf(nfirst_str, "%d", nfirst);
-		json = concat_str(json, nfirst_str);
-		json = concat_str(json, "}");
+		// json = concat_str(json, ", \"");
+		// json = concat_str(json, MSG_SELECT_PLAN_NUM);
+		// json = concat_str(json, "\": ");
+		// json = concat_str(json, nfirst_str);
+		// json = concat_str(json, "}");
+		string_builder_append(&strb, ", \"");
+		string_builder_append(&strb, MSG_SELECT_PLAN_NUM);
+		string_builder_append(&strb, "\": ");
+		string_builder_append(&strb, nfirst_str);
+		string_builder_append(&strb, "}");
 
-		// yyjson_mut_val *path_json = path_to_json(current_path, json_doc);
-		// yyjson_mut_obj_put(root, yyjson_mut_strcpy(json_doc, "Plan"), path_json);
-		// yyjson_mut_obj_put(root, yyjson_mut_strcpy(json_doc, MSG_TYPE), yyjson_mut_strcpy(json_doc, MSG_SELECT_NFIRST));
-		// yyjson_mut_obj_put(root, yyjson_mut_strcpy(json_doc, MSG_SELECT_PLAN_NUM), yyjson_mut_int(json_doc, nfirst));
-		// // generate string of json object
-		// char *json = yyjson_mut_write(json_doc, YYJSON_WRITE_PRETTY, NULL);
-		// // concatenate plans
-		json_plans_str = concat_str(json_plans_str, json);
-		if(idx != pathlist->length-1) 
-			json_plans_str = concat_str(json_plans_str, MSG_SPLIT_FLAG);
-		yyjson_mut_doc_free(json_doc);
+
+		// concatenate plans
+		string_builder_append(&strb_root, strb.data);
+		string_builder_destroy(&strb);
+		// json_plans_str = concat_str(json_plans_str, json);
+		if(idx != pathlist->length-1)
+			string_builder_append(&strb_root, MSG_SPLIT_FLAG);
+			// json_plans_str = concat_str(json_plans_str, MSG_SPLIT_FLAG);
 		idx++;
 	}
 	gettimeofday(&tv, NULL);
@@ -147,13 +171,19 @@ void lcm_select_nfirst_best_paths(PlannerGlobal *glob, List *pathlist, int nplan
 	fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
 	fprintf(fp, "[INFO] lcm_select_nfirst_best_paths: %d plans, time = %f\n", nplans, end_time-start_time);
 	fclose(fp);
-	json_plans_str = concat_str(json_plans_str, MSG_END_FLAG);											
+	string_builder_append(&strb_root, MSG_END_FLAG);
+	// json_plans_str = concat_str(json_plans_str, MSG_END_FLAG);			
+	// fp = fopen("/home/dbgroup/workspace/liqilong/LBO/lql_log", "a+");
+	// fprintf(fp, "[INFO] lcm_select_nfirst_best_paths: to be transfered plans:%s\n", json_plans_str);
+	// fclose(fp);						
 
 	// invoke function to send json_plans_str to lcm server
-	invoke_lcm_select_nfirst_plan(json_plans_str, nfirst, nfirst_plans_index);
+	json_plans_str = strb_root.data;
+	invoke_lcm_select_nfirst_plan(json_plans_str, nfirst, nfirst_plans_index, selected_plans_num);
+	string_builder_destroy(&strb_root);
 }
 
-static void invoke_lcm_select_nfirst_plan(char* json_plans_str, int nfirst, int* nfirst_plans_index)
+static void invoke_lcm_select_nfirst_plan(char* json_plans_str, int nfirst, int* nfirst_plans_index, int* selected_plans_num)
 {
 	int conn_fd = connect_to_server(lcm_server_host, lcm_server_port);
 	if (conn_fd == -1)
@@ -182,6 +212,7 @@ static void invoke_lcm_select_nfirst_plan(char* json_plans_str, int nfirst, int*
 	else
 	{
 		char* selected_plan_idxes_str = yyjson_get_str(yyjson_obj_get(msg_json_obj, MSG_NFIRST_PLAN_IDX));
+		*selected_plans_num = yyjson_get_int(yyjson_obj_get(msg_json_obj, MSG_PLAN_NUM));
 		// split string to get selected plan idxes
 		const char delimiter = ',';
 		char *selected_plan_idx = strtok(selected_plan_idxes_str, &delimiter);
@@ -314,7 +345,7 @@ void encode_path(PlannerGlobal *glob, Path* path, int depth)
 			encode_path(glob, ((GatherMergePath* )path)->subpath, depth+1);
 			break;
 		default:
-			elog(ERROR, "unrecognized node type: %d",
+			elog(ERROR, "lcm unrecognized node type: %d",
 				 (int) path->pathtype);
 			break;
 	}

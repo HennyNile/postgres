@@ -50,6 +50,8 @@ typedef enum
 extern PGDLLIMPORT Cost disable_cost;
 extern PGDLLIMPORT int max_parallel_workers_per_gather;
 extern PGDLLIMPORT bool lcm_enabled;
+extern PGDLLIMPORT bool enable_save_root_joinorder_candidate_plan;
+extern PGDLLIMPORT bool save_root_joinorder_candidate_plan_finished;
 extern PGDLLIMPORT bool enable_seqscan;
 extern PGDLLIMPORT bool enable_indexscan;
 extern PGDLLIMPORT bool enable_indexonlyscan;

@@ -451,7 +451,14 @@ add_path(RelOptInfo *parent_rel, Path *new_path)
 		/*
 		 * Do a fuzzy cost comparison with standard fuzziness limit.
 		 */
-		costcmp = compare_path_costs_fuzzily(new_path, old_path,
+		if (enable_save_root_joinorder_candidate_plan)
+			if (save_root_joinorder_candidate_plan_finished)
+				costcmp = COSTS_DIFFERENT;
+			else
+				costcmp = compare_path_costs_fuzzily(new_path, old_path,
+											 1);
+		else
+			costcmp = compare_path_costs_fuzzily(new_path, old_path,
 											 STD_FUZZ_FACTOR);
 
 		// lql: enable to add all potential paths
